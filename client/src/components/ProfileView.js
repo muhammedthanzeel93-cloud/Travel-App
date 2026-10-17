@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { COMMUNITY_EXPLORERS, DEFAULT_USER_PROFILE } from '../data/destinationsData';
 
 /**
@@ -284,13 +284,6 @@ export default function ProfileView({
   const followersList = profile.followers || [];
   const followingCount = followingList.length;
   const followersCount = (profile.followersCount || 1420) + (followersList.filter(f => f.isNewFollower).length);
-
-  // Computed stats
-  const totalNights = myItinerary.reduce((sum, item) => sum + (Number(item.nights) || 1), 0);
-  const totalReviewsContributed = destinations.reduce((sum, d) => {
-    const userReviews = (d.reviews || []).filter((r) => r.author?.toLowerCase().includes('aysha') || r.isUser);
-    return sum + (userReviews.length || 0);
-  }, 0);
 
   // Save Preferences
   const handleSavePreferences = (e) => {

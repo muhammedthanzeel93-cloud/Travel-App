@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import {
   calculateTripBudget,
   formatBudgetSummaryText,
+  DEFAULT_BUDGET_CONFIG,
   TRANSPORT_OPTIONS,
   DINING_TIERS,
-  ACTIVITIES_TIERS,
-  DEFAULT_BUDGET_CONFIG
+  ACTIVITIES_TIERS
 } from '../utils/budgetCalculator';
 
 export default function ItineraryView({

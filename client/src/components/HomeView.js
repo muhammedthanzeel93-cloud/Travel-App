@@ -331,14 +331,14 @@ export default function HomeView({
   const currentStory = activeStoryIndex !== null ? allStories[activeStoryIndex] : null;
 
   // Open story handler
-  const handleOpenStory = (index) => {
+  const handleOpenStory = useCallback((index) => {
     setActiveStoryIndex(index);
     setViewedStories((prev) => {
       const next = new Set(prev);
       next.add(allStories[index]?.id);
       return next;
     });
-  };
+  }, [allStories]);
 
   // Close story handler
   const handleCloseStory = useCallback(() => {
@@ -353,14 +353,14 @@ export default function HomeView({
     } else {
       handleCloseStory();
     }
-  }, [activeStoryIndex, allStories.length, handleCloseStory]);
+  }, [activeStoryIndex, allStories.length, handleCloseStory, handleOpenStory]);
 
   const handlePrevStory = useCallback(() => {
     if (activeStoryIndex === null) return;
     if (activeStoryIndex > 0) {
       handleOpenStory(activeStoryIndex - 1);
     }
-  }, [activeStoryIndex]);
+  }, [activeStoryIndex, handleOpenStory]);
 
   // Story keyboard navigation (Arrow keys & Escape)
   useEffect(() => {

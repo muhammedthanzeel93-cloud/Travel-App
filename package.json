@@ -1,22 +1,36 @@
 {
-  "name": "travel-app",
-  "version": "0.1.0",
+  "name": "wanderlust-monorepo",
+  "version": "1.0.0",
   "private": true,
+  "description": "WanderLust Monorepo — strictly separating frontend UI logic (client) from backend API services (server)",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "start": "npm start --workspace=client",
+    "start:client": "npm start --workspace=client",
+    "start:server": "npm start --workspace=server",
+    "dev": "node scripts/start-dev.js",
+    "client": "npm start --workspace=client",
+    "server": "npm start --workspace=server",
+    "test": "npm test --workspace=client --",
+    "test:client": "npm test --workspace=client --",
+    "test:server": "npm test --workspace=server --",
+    "test:all": "npm run test:server && npm run test:client",
+    "build": "npm run build --workspace=client",
+    "build:client": "npm run build --workspace=client"
+  },
   "dependencies": {
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^13.5.0",
+    "express": "^4.18.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

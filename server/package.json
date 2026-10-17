@@ -1,0 +1,15 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WanderLust backend API services providing travel, AI, routing, budget, and social feed endpoints",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test": "node src/server.test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
