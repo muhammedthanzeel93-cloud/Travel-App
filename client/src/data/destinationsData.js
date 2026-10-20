@@ -3474,6 +3474,7 @@ export function calculateRoutePlan(startLocation = 'Current Location', destinati
  */
 export const DEFAULT_USER_PROFILE = {
   id: 'user-aysha',
+  username: 'aysha_explorer',
   name: 'Aysha Rayan',
   handle: '@aysha_explorer',
   bio: 'Global Travel Architect & High-Altitude Enthusiast. Crafting memories one horizon at a time.',
@@ -3529,6 +3530,103 @@ export const DEFAULT_USER_PROFILE = {
     }
   ],
   following: ['user-sameer', 'user-elena']
+};
+
+export const INITIAL_USER_ACCOUNTS = [
+  {
+    id: 'user-aysha',
+    username: 'aysha_explorer',
+    passportId: 'WNDR-2026-X79',
+    name: 'Aysha Rayan',
+    password: 'password123',
+    tier: 'APEX VOYAGER',
+    avatarInitials: 'AR',
+    location: 'Bangalore, India',
+    travelStyle: 'Luxury Eco-Resorts & High-Speed Transit',
+    bio: 'Global Travel Architect & High-Altitude Enthusiast. Crafting memories one horizon at a time.',
+    followersCount: 1420,
+    followingCount: 2,
+    following: ['user-sameer', 'user-elena']
+  },
+  {
+    id: 'user-sameer',
+    username: 'sameer_peaks',
+    passportId: 'WNDR-2026-S12',
+    name: 'Dr. Sameer Siddiqui',
+    password: 'password123',
+    tier: 'GLACIER PATHFINDER',
+    avatarInitials: 'SS',
+    location: 'Pune / Leh, India',
+    travelStyle: 'Sub-Zero Glacier Treks & High-Altitude Geology',
+    bio: 'Pioneered tea plantation microclimate surveys. 42 Himalayan summits logged.',
+    followersCount: 2840,
+    followingCount: 194,
+    following: ['user-elena']
+  },
+  {
+    id: 'user-elena',
+    username: 'elena_wanderer',
+    passportId: 'WNDR-2026-E45',
+    name: 'Elena Rostova',
+    password: 'password123',
+    tier: 'ROYAL CONNOISSEUR',
+    avatarInitials: 'ER',
+    location: 'Nice / Jaipur, France',
+    travelStyle: 'Boutique Seaside Villas & Fine Dining',
+    bio: 'Curating boutique heritage villas and seaside cliff retreats across Asia & Europe.',
+    followersCount: 3190,
+    followingCount: 420,
+    following: ['user-sameer']
+  }
+];
+
+export const SEED_USER_ITINERARIES = {
+  'user-aysha': [
+    {
+      destinationId: 'munnar-kerala',
+      destinationName: 'Munnar',
+      region: 'Kerala, India',
+      hotelName: 'Tea County Heritage Resort & Spa',
+      roomName: 'Deluxe Valley View Room',
+      roomPrice: 5200,
+      nights: 3,
+      guests: '2 Adults'
+    },
+    {
+      destinationId: 'zanskar-valley-ladakh',
+      destinationName: 'Zanskar Valley, Ladakh',
+      region: 'Ladakh, India',
+      hotelName: 'Zanskar Eco-Himalayan Dome & Heritage Lodge',
+      roomName: 'Stargazer Glamping Geodesic Dome',
+      roomPrice: 5500,
+      nights: 4,
+      guests: '2 Adults'
+    }
+  ],
+  'user-sameer': [
+    {
+      destinationId: 'zanskar-valley-ladakh',
+      destinationName: 'Zanskar Valley, Ladakh',
+      region: 'Ladakh, India',
+      hotelName: 'Zanskar Eco-Himalayan Dome & Heritage Lodge',
+      roomName: 'Traditional Carved Wood Suite',
+      roomPrice: 7800,
+      nights: 6,
+      guests: '2 Adults'
+    }
+  ],
+  'user-elena': [
+    {
+      destinationId: 'jaipur-rajasthan',
+      destinationName: 'Amer Fort, Jaipur',
+      region: 'Rajasthan, India',
+      hotelName: 'Samode Heritage Haveli Suite',
+      roomName: 'Heritage Haveli Suite',
+      roomPrice: 5800,
+      nights: 4,
+      guests: '2 Adults'
+    }
+  ]
 };
 
 /**
@@ -3626,4 +3724,438 @@ export const COMMUNITY_EXPLORERS = [
     tripsPlanned: 29
   }
 ];
+
+/**
+ * Curated Travel Packages for the Showcase & Marketplace
+ */
+export const INITIAL_TRAVEL_PACKAGES = [
+  {
+    id: 'pkg-1',
+    title: '4-Day Western Ghats Mist & High-Altitude Tea Trail',
+    tagline: 'High-altitude cloud valleys, sunrise peaks & luxury heritage eco-bungalows',
+    creatorId: 'user-sameer',
+    creatorName: 'Dr. Sameer Siddiqui',
+    creatorHandle: '@sameer_peaks',
+    creatorAvatar: 'SS',
+    creatorRole: 'Western Ghats Specialist & Glaciologist',
+    category: 'Winter Hill Station',
+    seasonBadge: '❄️ Winter Chill & Mist',
+    duration: '4 Days / 3 Nights',
+    daysCount: 4,
+    nightsCount: 3,
+    price: 18500,
+    originalPrice: 22000,
+    pricingDetails: {
+      basePrice: 18500,
+      currency: 'INR (₹)',
+      pricePerPerson: true,
+      stayCost: 11500,
+      transitCost: 3500,
+      activitiesCost: 2500,
+      taxesFees: 1000,
+      inclusions: [
+        '3 Nights in Tea County Heritage Eco-Resort',
+        'Private 4x4 Transit from Kochi Airport/Station',
+        'Guided Sunrise Trek to Top Station Panorama',
+        'Eravikulam National Park Safari Passes',
+        'Authentic Malabar Feast & Spiced Tea Tastings'
+      ],
+      exclusions: [
+        'Flight/Train Fares to Kochi',
+        'Personal Souvenirs & Alcoholic Beverages'
+      ]
+    },
+    destinationsCovered: ['Munnar', 'Lockhart Gap', 'Top Station', 'Anamudi Peak'],
+    primaryDestinationId: 'munnar-kerala',
+    coverImage: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=1200&q=80',
+    rating: 4.92,
+    reviewsCount: 148,
+    bookingsCount: 312,
+    tags: ['Winter Mist', 'Eco-Luxury Stay', 'Guided Trek', 'All-Inclusive'],
+    highlights: [
+      '360° Cloud Bed Sunrise at Top Station (1,880m)',
+      'Colonial Tea Factory Tour & Artisanal Leaf Tasting',
+      'Nilgiri Tahr Sighting at Eravikulam Sanctuary',
+      'Campfire Dinner with Cardamom Spiced Tea'
+    ],
+    itinerary: [
+      {
+        day: 1,
+        title: 'Ascent to Emerald Valleys & Colonial Welcome',
+        morning: 'Scenic highway drive from Kochi via Cheeyappara waterfalls.',
+        afternoon: 'Check-in to Tea County Heritage Eco-Resort. Valley-view high tea.',
+        evening: 'Sunset stroll at Lockhart Gap and Malabar dinner.',
+        stay: 'Tea County Heritage Resort & Spa (Deluxe Valley Room)',
+        mealsIncluded: 'Dinner'
+      },
+      {
+        day: 2,
+        title: 'Dawn Above Clouds & Tea Processing Secrets',
+        morning: '5:30 AM 4x4 expedition to Top Station for sea-of-clouds sunrise.',
+        afternoon: 'Colonial KDHP tea factory tour and master brewing session.',
+        evening: 'Lakeside campfire by Mattupetty Lake.',
+        stay: 'Tea County Heritage Resort & Spa',
+        mealsIncluded: 'Breakfast & Dinner'
+      },
+      {
+        day: 3,
+        title: 'Nilgiri Wildlife Sanctuary & Anamudi Foothills',
+        morning: 'Guided safari in Eravikulam National Park.',
+        afternoon: 'Lunch at Rapsy Restaurant and spice bazaar walk.',
+        evening: 'Ayurvedic wellness rejuvenation and plantation dinner.',
+        stay: 'Tea County Heritage Resort & Spa',
+        mealsIncluded: 'Breakfast & Dinner'
+      },
+      {
+        day: 4,
+        title: 'Attukal Cascades & Return Corridor',
+        morning: 'Attukal waterfalls visit and fresh tea shopping.',
+        afternoon: 'Scenic transfer back to Kochi airport/railway station.',
+        evening: 'Expedition concludes.',
+        stay: null,
+        mealsIncluded: 'Breakfast'
+      }
+    ]
+  },
+  {
+    id: 'pkg-2',
+    title: '6-Day Zanskar Frozen Gorge & Chadar Expedition',
+    tagline: 'World-famous sub-zero glacier canyon traversal across frozen Zanskar river',
+    creatorId: 'user-sameer',
+    creatorName: 'Dr. Sameer Siddiqui',
+    creatorHandle: '@sameer_peaks',
+    creatorAvatar: 'SS',
+    creatorRole: 'Western Ghats Specialist & Glaciologist',
+    category: 'High Altitude & Snow',
+    seasonBadge: '🏔️ Sub-Zero Chadar',
+    duration: '6 Days / 5 Nights',
+    daysCount: 6,
+    nightsCount: 5,
+    price: 38000,
+    originalPrice: 45000,
+    pricingDetails: {
+      basePrice: 38000,
+      currency: 'INR (₹)',
+      pricePerPerson: true,
+      stayCost: 20000,
+      transitCost: 6500,
+      activitiesCost: 9500,
+      taxesFees: 2000,
+      inclusions: [
+        '2 Nights Heated Lodge in Leh + 3 Nights Thermal Alpine Domes',
+        'Certified High-Altitude Glaciologist & Porter Support',
+        'Sub-Zero Crampons, Insulated Sleeping Bags & Oxygen Cylinders',
+        'ALSA Permits & Wildlife Conservation Passes',
+        'All High-Calorie Alpine Meals & Hot Soups'
+      ],
+      exclusions: [
+        'Leh Flight Airfare',
+        'Personal Cold-Weather Outerwear (Gore-Tex Down Jackets)'
+      ]
+    },
+    destinationsCovered: ['Leh', 'Chilling', 'Tibb Cave', 'Nerak Frozen Waterfall'],
+    primaryDestinationId: 'zanskar-valley-ladakh',
+    coverImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+    rating: 4.96,
+    reviewsCount: 89,
+    bookingsCount: 164,
+    tags: ['Sub-Zero Trek', 'Glacier Ice', 'Crampon Expeditions', 'High Adventure'],
+    highlights: [
+      'Walking on translucent turquoise river ice at -14°C',
+      'The majestic 50-foot Nerak Frozen Waterfall',
+      'Stargazing in pristine Bortle 1 high-altitude dark skies',
+      'Thermal dome stays with wood-fired bukhari stoves'
+    ],
+    itinerary: [
+      {
+        day: 1,
+        title: 'Acclimatization in Leh (3,500m)',
+        morning: 'Arrive at Leh Kushok Bakula Airport. Strict rest for acclimatization.',
+        afternoon: 'Gentle walk through Leh Old Town and Shanti Stupa.',
+        evening: 'Briefing with glaciologist team and gear inspection.',
+        stay: 'The Grand Dragon Heated Luxury Lodge, Leh',
+        mealsIncluded: 'Dinner'
+      },
+      {
+        day: 2,
+        title: 'Scenic Drive to Chilling & Ice Step-Out',
+        morning: 'Drive alongside the confluence of Indus and Zanskar rivers.',
+        afternoon: 'First step onto the Chadar ice sheet at Chilling base camp.',
+        evening: 'Camp setup and hot butter tea in heated mess tent.',
+        stay: 'Chadar Expedition Alpine Camp (Tilat Do)',
+        mealsIncluded: 'Breakfast, Lunch & Dinner'
+      },
+      {
+        day: 3,
+        title: 'Deep Canyon Trek to Gyalpo & Tibb Caves',
+        morning: 'Trekking through towering 600m granite walls on crystal ice.',
+        afternoon: 'Crossing natural ice bridges with crampons.',
+        evening: 'Cave campfire and local Ladakhi thukpa noodle dinner.',
+        stay: 'Tibb Cave High-Altitude Dome',
+        mealsIncluded: 'Breakfast, Lunch & Dinner'
+      },
+      {
+        day: 4,
+        title: 'The Iconic Nerak Frozen Waterfall Finale',
+        morning: 'Hike to the legendary Nerak waterfall frozen solid in turquoise ice.',
+        afternoon: 'Photography at the ice cascade and hot ginger tea.',
+        evening: 'Celebration dinner at Nerak village shelter.',
+        stay: 'Nerak Village Alpine Shelter',
+        mealsIncluded: 'Breakfast, Lunch & Dinner'
+      },
+      {
+        day: 5,
+        title: 'Return Trail across Chilling Gorge',
+        morning: 'Return trek observing changing ice formations.',
+        afternoon: 'Transfer back to warm luxury hotel in Leh.',
+        evening: 'Hot stone bath and traditional Ladakhi feast.',
+        stay: 'The Grand Dragon Heated Luxury Lodge, Leh',
+        mealsIncluded: 'Breakfast, Lunch & Dinner'
+      },
+      {
+        day: 6,
+        title: 'Himalayan Flight Departure',
+        morning: 'Sunrise view of Stok Kangri range and airport transfer.',
+        afternoon: 'Flight departure.',
+        evening: 'Expedition concludes.',
+        stay: null,
+        mealsIncluded: 'Breakfast'
+      }
+    ]
+  },
+  {
+    id: 'pkg-3',
+    title: '4-Day Royal Rajasthan Palaces & Desert Sunset Trail',
+    tagline: 'Mughal sandstone ramparts, golden sunsets & candlelit heritage haveli suites',
+    creatorId: 'user-elena',
+    creatorName: 'Elena Rostova',
+    creatorHandle: '@elena_wanderer',
+    creatorAvatar: 'ER',
+    creatorRole: 'Coastal & Heritage Architecture Connoisseur',
+    category: 'Heritage & Palaces',
+    seasonBadge: '🏰 Golden Winter Season',
+    duration: '4 Days / 3 Nights',
+    daysCount: 4,
+    nightsCount: 3,
+    price: 24500,
+    originalPrice: 29000,
+    pricingDetails: {
+      basePrice: 24500,
+      currency: 'INR (₹)',
+      pricePerPerson: true,
+      stayCost: 15500,
+      transitCost: 4000,
+      activitiesCost: 3800,
+      taxesFees: 1200,
+      inclusions: [
+        '3 Nights in Samode Haveli / Heritage Palace Suite',
+        'Chauffeured Luxury Vintage Car Transfers',
+        'VIP Access to Amer Fort Sheesh Mahal & City Palace Royal Quarters',
+        'Sunset High Tea on Nahargarh Fort Ramparts',
+        'Curated Royal Rajput Thali Dinners with Folk Performances'
+      ],
+      exclusions: [
+        'Personal Airfare/Train to Jaipur',
+        'Custom Jewelry & Textile Purchases'
+      ]
+    },
+    destinationsCovered: ['Jaipur', 'Amer Fort', 'Nahargarh', 'Jal Mahal'],
+    primaryDestinationId: 'jaipur-rajasthan',
+    coverImage: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80',
+    rating: 4.88,
+    reviewsCount: 204,
+    bookingsCount: 410,
+    tags: ['Royal Heritage', 'Palace Suites', 'Cultural Sunset', 'Luxury Haveli'],
+    highlights: [
+      'Private sunset tea overlooking Jaipur from Nahargarh ramparts',
+      'Exclusive nighttime illuminations of Jal Mahal palace in the water',
+      'Artisanal block printing workshop with master craftsmen',
+      'Royal dining in a 250-year-old marble palace courtyard'
+    ],
+    itinerary: [
+      {
+        day: 1,
+        title: 'Arrival in the Pink City & Haveli Welcome',
+        morning: 'Airport pick-up in vintage chauffeur car to Samode Haveli.',
+        afternoon: 'Check-in, refreshing rose petal welcome drink & courtyard lunch.',
+        evening: 'Sunset high tea atop Nahargarh Fort overlooking the glowing city.',
+        stay: 'Samode Heritage Haveli Suite',
+        mealsIncluded: 'Dinner'
+      },
+      {
+        day: 2,
+        title: 'Amer Fort Splendor & Sheesh Mahal Reflections',
+        morning: 'Morning excursion to Amer Fort and private guide through the Hall of Mirrors.',
+        afternoon: 'Stop by Jal Mahal water palace & lunch at 1135 AD royal restaurant.',
+        evening: 'Sound & Light spectacle at Amer Fort.',
+        stay: 'Samode Heritage Haveli Suite',
+        mealsIncluded: 'Breakfast & Dinner'
+      },
+      {
+        day: 3,
+        title: 'City Palace Curators & Johari Bazaar Gems',
+        morning: 'Exclusive tour of City Palace Chandra Mahal private royal quarters.',
+        afternoon: 'Heritage walk through Johari Bazaar with gemology master.',
+        evening: 'Candlelit Rajasthani feast with live sarangi & sitar recitals.',
+        stay: 'Samode Heritage Haveli Suite',
+        mealsIncluded: 'Breakfast & Dinner'
+      },
+      {
+        day: 4,
+        title: 'Hawa Mahal Dawn & Regal Farewell',
+        morning: 'Early morning coffee across from Hawa Mahal wind facade.',
+        afternoon: 'Artisan souvenir collection & transfer to Jaipur International Airport.',
+        evening: 'Tour concludes.',
+        stay: null,
+        mealsIncluded: 'Breakfast'
+      }
+    ]
+  },
+  {
+    id: 'pkg-4',
+    title: '5-Day Baa Atoll Biosphere & Overwater Lagoon Retreat',
+    tagline: 'Solar-powered overwater villas, private manta ray encounters & pristine house reefs',
+    creatorId: 'user-chloe',
+    creatorName: 'Chloe Dupont',
+    creatorHandle: '@chloe_ecolife',
+    creatorAvatar: 'CD',
+    creatorRole: 'Sustainable Eco-Resort & Tea Estate Curator',
+    category: 'Tropical & Coastal',
+    seasonBadge: '🌴 Warm Winter Lagoon',
+    duration: '5 Days / 4 Nights',
+    daysCount: 5,
+    nightsCount: 4,
+    price: 64000,
+    originalPrice: 78000,
+    pricingDetails: {
+      basePrice: 64000,
+      currency: 'INR (₹)',
+      pricePerPerson: true,
+      stayCost: 44000,
+      transitCost: 10000,
+      activitiesCost: 7500,
+      taxesFees: 2500,
+      inclusions: [
+        '4 Nights in Solar Overwater Sunset Villa with Private Plunge Pool',
+        'Round-trip Scenic Seaplane Transfers from Malé (Velana)',
+        'Guided Manta Ray & Whale Shark Snorkeling with Marine Biologist',
+        'Daily Organic Gourmet Breakfast & Sunset Lagoon Canapés',
+        'Complimentary Stand-Up Paddleboards, Kayaks & Coral Reef Gear'
+      ],
+      exclusions: [
+        'International Flights to Malé',
+        'PADI Scuba Certification Courses'
+      ]
+    },
+    destinationsCovered: ['Baa Atoll', 'Hanifaru Bay', 'Dharavandhoo Island'],
+    primaryDestinationId: 'maldives-atoll',
+    coverImage: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&w=1200&q=80',
+    rating: 4.95,
+    reviewsCount: 112,
+    bookingsCount: 228,
+    tags: ['Overwater Villa', 'Marine Sanctuary', 'Seaplane', 'Eco-Luxury'],
+    highlights: [
+      'Snorkeling alongside gentle giant manta rays in Hanifaru Bay',
+      'Direct steps from villa sundeck into crystal 28°C turquoise lagoons',
+      'Zero single-use plastics and 100% solar-powered resort operations',
+      'Private sunset sandbank dinner under equatorial constellations'
+    ],
+    itinerary: [
+      {
+        day: 1,
+        title: 'Seaplane Arrival over Atoll Archipelagos',
+        morning: 'Board scenic seaplane at Malé flying over emerald atoll rings.',
+        afternoon: 'Step onto jetty welcome. Check-in to Overwater Sunset Villa.',
+        evening: 'Sunset barefoot dinner on the white sand shore.',
+        stay: 'Soneva Fushi / Baa Atoll Eco-Overwater Villa',
+        mealsIncluded: 'Dinner'
+      },
+      {
+        day: 2,
+        title: 'Hanifaru Bay Manta Ray Expedition',
+        morning: 'Boat expedition with resident marine biologist to UNESCO Hanifaru Bay.',
+        afternoon: 'Snorkel with feeding mantas along the outer reef wall.',
+        evening: 'Cocktails over water with coral reef illumination.',
+        stay: 'Baa Atoll Eco-Overwater Villa',
+        mealsIncluded: 'Breakfast & Dinner'
+      },
+      {
+        day: 3,
+        title: 'Coral Restoration & Turtle Sanctuary',
+        morning: 'Adopt and plant a coral fragment at the reef nursery.',
+        afternoon: 'Guided sea turtle safari along the island drop-off.',
+        evening: 'Stargazing session at the overwater astronomical observatory.',
+        stay: 'Baa Atoll Eco-Overwater Villa',
+        mealsIncluded: 'Breakfast & Dinner'
+      },
+      {
+        day: 4,
+        title: 'Deserted Sandbank Picnic & Wellness Spa',
+        morning: 'Private boat drop on a pristine uninhabited sandbank.',
+        afternoon: 'Ayurvedic ocean massage and stand-up paddleboarding.',
+        evening: 'Chef special Maldivian grilled catch under candlelight.',
+        stay: 'Baa Atoll Eco-Overwater Villa',
+        mealsIncluded: 'Breakfast, Lunch & Dinner'
+      },
+      {
+        day: 5,
+        title: 'Farewell Lagoon Swim & Seaplane Return',
+        morning: 'Sunrise lagoon swim directly from bedroom deck.',
+        afternoon: 'Scenic seaplane return transfer to Malé airport.',
+        evening: 'Departure.',
+        stay: null,
+        mealsIncluded: 'Breakfast'
+      }
+    ]
+  }
+];
+
+/**
+ * Curated Favorite Places Highlights for Profiles
+ */
+export const INITIAL_FAVORITE_PLACES = [
+  {
+    id: 'fav-1',
+    destinationId: 'munnar-kerala',
+    name: 'Munnar',
+    region: 'Kerala, India',
+    category: 'Hill Station & Nature',
+    rating: 4.8,
+    image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=1000&q=80',
+    recommendationNote: 'Waking up at 5:30 AM to catch the cloud bed rolling over Lockhart Gap is pure magic! Pair it with fresh spiced cardamom tea at Top Station.',
+    highlightTag: '🌅 Cloud Beds & Tea Mist',
+    recommendedSeason: 'Winter (Nov - Feb)',
+    pinnedAt: 'Pinned by Traveler',
+    mustVisitSpots: ['Top Station', 'KDHP Tea Museum', 'Rapsy Restaurant']
+  },
+  {
+    id: 'fav-2',
+    destinationId: 'zanskar-valley-ladakh',
+    name: 'Zanskar Valley, Ladakh',
+    region: 'Ladakh, India',
+    category: 'High Altitude & Snow',
+    rating: 4.95,
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80',
+    recommendationNote: 'The sheer silence of the frozen Chadar river canyon at -14°C is humbling. Nothing on Earth compares to walking on turquoise river ice.',
+    highlightTag: '❄️ Sub-Zero Glacier Trek',
+    recommendedSeason: 'January - February',
+    pinnedAt: 'Pinned by Traveler',
+    mustVisitSpots: ['Nerak Frozen Waterfall', 'Chilling Gorge', 'Tibb Cave']
+  },
+  {
+    id: 'fav-3',
+    destinationId: 'jaipur-rajasthan',
+    name: 'Amer Fort, Jaipur',
+    region: 'Rajasthan, India',
+    category: 'Heritage & Palaces',
+    rating: 4.85,
+    image: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1000&q=80',
+    recommendationNote: 'Sunset high tea on the Nahargarh Fort ramparts looking over the glowing Pink City. Make sure to visit Sheesh Mahal at golden hour.',
+    highlightTag: '🏰 Royal Ramparts & Golden Hour',
+    recommendedSeason: 'October - March',
+    pinnedAt: 'Pinned by Traveler',
+    mustVisitSpots: ['Sheesh Mahal', 'Nahargarh Ramparts', 'Jal Mahal']
+  }
+];
+
 

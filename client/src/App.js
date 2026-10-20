@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './App.css';
-import { INITIAL_DESTINATIONS, INITIAL_ITINERARY, DEFAULT_USER_PROFILE, COMMUNITY_EXPLORERS } from './data/destinationsData';
+import { INITIAL_DESTINATIONS, INITIAL_ITINERARY, DEFAULT_USER_PROFILE, COMMUNITY_EXPLORERS, INITIAL_USER_ACCOUNTS, SEED_USER_ITINERARIES } from './data/destinationsData';
 import DestinationCard from './components/DestinationCard';
 import DestinationModal from './components/DestinationModal';
 import CreateLocationModal from './components/CreateLocationModal';
@@ -13,6 +13,8 @@ import FuturisticNavBar from './components/FuturisticNavBar';
 import HomeView from './components/HomeView';
 import ProfileView from './components/ProfileView';
 import RoutePlannerModal from './components/RoutePlannerModal';
+import AuthModal from './components/AuthModal';
+import apiClient from './services/apiClient';
 
 /**
  * ============================================================================
@@ -140,15 +142,62 @@ export default function TravelAppMVP() {
     }
   });
 
-  // User itinerary state with localStorage sync
-  const [myItinerary, setMyItinerary] = useState(() => {
+  // Multi-user authentication & accounts state
+  const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('wanderlust_itinerary_v2');
-      return saved ? JSON.parse(saved) : INITIAL_ITINERARY;
+      const saved = localStorage.getItem('wanderlust_active_user_v1');
+      if (saved) return JSON.parse(saved);
     } catch (e) {
-      console.error('Failed to parse saved itinerary:', e);
-      return INITIAL_ITINERARY;
+      console.error('Failed to parse active user:', e);
     }
+    return INITIAL_USER_ACCOUNTS[0]; // Aysha Rayan by default
+  });
+
+  const [registeredUsers, setRegisteredUsers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wanderlust_accounts_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse registered users:', e);
+    }
+    return INITIAL_USER_ACCOUNTS;
+  });
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState('login'); // 'login' | 'register' | 'switch'
+
+  // Helper to load isolated travel plan for a specific user
+  const loadUserItinerary = useCallback((userId) => {
+    try {
+      const userKey = `wanderlust_itinerary_user_${userId}`;
+      const saved = localStorage.getItem(userKey);
+      if (saved) return JSON.parse(saved);
+      if (SEED_USER_ITINERARIES && SEED_USER_ITINERARIES[userId]) {
+        return SEED_USER_ITINERARIES[userId];
+      }
+      if (userId === 'user-aysha') {
+        const legacySaved = localStorage.getItem('wanderlust_itinerary_v2');
+        if (legacySaved) return JSON.parse(legacySaved);
+        return INITIAL_ITINERARY;
+      }
+      return [];
+    } catch (e) {
+      console.error('Failed to load user itinerary:', e);
+      return [];
+    }
+  }, []);
+
+  // User itinerary state strictly isolated per user account
+  const [myItinerary, setMyItinerary] = useState(() => {
+    const initUser = (() => {
+      try {
+        const saved = localStorage.getItem('wanderlust_active_user_v1');
+        return saved ? JSON.parse(saved) : INITIAL_USER_ACCOUNTS[0];
+      } catch {
+        return INITIAL_USER_ACCOUNTS[0];
+      }
+    })();
+    return loadUserItinerary(initUser.id);
   });
 
   // Top-level futuristic navigation ('home' | 'explore' | 'trips' | 'profile')
@@ -205,6 +254,31 @@ export default function TravelAppMVP() {
   // User toast notifications
   const [toastMessage, setToastMessage] = useState(null);
 
+  const showToast = useCallback((message) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3200);
+  }, []);
+
+  // Sync active user to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('wanderlust_active_user_v1', JSON.stringify(currentUser));
+    } catch (e) {
+      console.error('LocalStorage write error for active user:', e);
+    }
+  }, [currentUser]);
+
+  // Sync registered users to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('wanderlust_accounts_v1', JSON.stringify(registeredUsers));
+    } catch (e) {
+      console.error('LocalStorage write error for registered users:', e);
+    }
+  }, [registeredUsers]);
+
   // Sync user profile to localStorage
   useEffect(() => {
     try {
@@ -232,20 +306,122 @@ export default function TravelAppMVP() {
     }
   }, [destinations]);
 
-  // Sync itinerary to localStorage
+  // Sync user-isolated itinerary to localStorage & backend
   useEffect(() => {
+    if (!currentUser?.id) return;
     try {
-      localStorage.setItem('wanderlust_itinerary_v2', JSON.stringify(myItinerary));
+      const userKey = `wanderlust_itinerary_user_${currentUser.id}`;
+      localStorage.setItem(userKey, JSON.stringify(myItinerary));
+      if (currentUser.id === 'user-aysha') {
+        localStorage.setItem('wanderlust_itinerary_v2', JSON.stringify(myItinerary));
+      }
+      apiClient.saveUserItinerary(currentUser.id, myItinerary).catch(() => {});
     } catch (e) {
-      console.error('LocalStorage write error:', e);
+      console.error('LocalStorage write error for user itinerary:', e);
     }
-  }, [myItinerary]);
+  }, [myItinerary, currentUser?.id]);
 
-  const showToast = useCallback((message) => {
-    setToastMessage(message);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3200);
+  // Fetch users from backend API if available
+  useEffect(() => {
+    apiClient.getAuthUsers().then((res) => {
+      if (res?.users && res.users.length > 0) {
+        setRegisteredUsers((prev) => {
+          const merged = [...prev];
+          res.users.forEach((ru) => {
+            if (!merged.some((mu) => mu.id === ru.id || mu.username === ru.username)) {
+              merged.push(ru);
+            }
+          });
+          return merged;
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Multi-user authentication handlers: switch, login, register, logout
+  const handleSwitchUser = useCallback((selectedUser) => {
+    if (!selectedUser) return;
+
+    if (currentUser?.id) {
+      try {
+        localStorage.setItem(`wanderlust_itinerary_user_${currentUser.id}`, JSON.stringify(myItinerary));
+      } catch (e) {}
+    }
+
+    setCurrentUser(selectedUser);
+
+    setUserProfile((prev) => ({
+      ...prev,
+      id: selectedUser.id,
+      name: selectedUser.name,
+      username: selectedUser.username,
+      handle: `@${selectedUser.username}`,
+      passportId: selectedUser.passportId || selectedUser.id,
+      tier: selectedUser.tier || 'APEX VOYAGER',
+      avatarInitials: selectedUser.avatarInitials || selectedUser.name.slice(0, 2).toUpperCase(),
+      location: selectedUser.location || prev.location,
+      travelStyle: selectedUser.travelStyle || prev.travelStyle,
+      bio: selectedUser.bio || prev.bio,
+      followersCount: selectedUser.followersCount ?? prev.followersCount,
+      followingCount: selectedUser.followingCount ?? prev.followingCount,
+      following: selectedUser.following || []
+    }));
+
+    const userItin = loadUserItinerary(selectedUser.id);
+    setMyItinerary(userItin);
+
+    apiClient.getUserItinerary(selectedUser.id).then((res) => {
+      if (res?.itinerary) {
+        setMyItinerary(res.itinerary);
+      }
+    }).catch(() => {});
+
+    showToast(`👋 Switched to account: ${selectedUser.name} (@${selectedUser.username}) • ID: ${selectedUser.passportId || selectedUser.id}`);
+  }, [currentUser?.id, myItinerary, loadUserItinerary, showToast]);
+
+  const handleLoginUser = useCallback(({ usernameOrId, password }) => {
+    const cleanInput = usernameOrId.trim().toLowerCase().replace(/^@/, '');
+    const user = registeredUsers.find(
+      (u) =>
+        u.username?.toLowerCase() === cleanInput ||
+        u.id?.toLowerCase() === cleanInput ||
+        u.passportId?.toLowerCase() === cleanInput
+    );
+
+    if (!user) {
+      return { error: `Account with username or ID "${usernameOrId}" was not found.` };
+    }
+
+    if (user.password && user.password !== password) {
+      return { error: 'Incorrect password. (Hint: demo accounts use "password123")' };
+    }
+
+    handleSwitchUser(user);
+    apiClient.login({ usernameOrId, password }).catch(() => {});
+    return { success: true, user };
+  }, [registeredUsers, handleSwitchUser]);
+
+  const handleRegisterUser = useCallback((newUserData) => {
+    const updatedUsers = [...registeredUsers, newUserData];
+    setRegisteredUsers(updatedUsers);
+
+    try {
+      localStorage.setItem(`wanderlust_itinerary_user_${newUserData.id}`, JSON.stringify([]));
+    } catch (e) {}
+
+    apiClient.register(newUserData).catch(() => {});
+    handleSwitchUser(newUserData);
+    showToast(`✨ Welcome to WanderLust, ${newUserData.name}! Passport ID: ${newUserData.passportId}`);
+  }, [registeredUsers, handleSwitchUser, showToast]);
+
+  const handleLogoutUser = useCallback(() => {
+    handleSwitchUser(INITIAL_USER_ACCOUNTS[0]);
+    showToast('Logged out of traveler account. Reverted to default explorer.');
+  }, [handleSwitchUser, showToast]);
+
+  const handleOpenAuthModal = useCallback((tab = 'login') => {
+    setAuthModalTab(tab);
+    setIsAuthModalOpen(true);
   }, []);
 
   // Global ESC key listener to dismiss open modals for keyboard a11y & responsive UX
@@ -545,6 +721,11 @@ export default function TravelAppMVP() {
         onOpenShareModal={() => handleOpenShareModal('itinerary')}
         onOpenAIChat={() => setIsAIChatOpen(true)}
         onOpenRoutePlanner={() => setIsRouteModalOpen(true)}
+        currentUser={currentUser}
+        registeredUsers={registeredUsers}
+        onOpenAuthModal={handleOpenAuthModal}
+        onSwitchUser={handleSwitchUser}
+        onLogout={handleLogoutUser}
       />
 
       {/* Main Container */}
@@ -583,6 +764,10 @@ export default function TravelAppMVP() {
             onOpenAIChat={() => setIsAIChatOpen(true)}
             onOpenBudgetModal={() => setIsBudgetModalOpen(true)}
             onOpenCreateModal={() => setIsCreateModalOpen(true)}
+            onSelectDestination={handleSelectDestination}
+            onQuickAdd={handleQuickAdd}
+            showToast={showToast}
+            onOpenAuthModal={handleOpenAuthModal}
           />
         )}
 
@@ -909,6 +1094,18 @@ export default function TravelAppMVP() {
           <span className="launcher-pulse"></span>
         </button>
       )}
+
+      {/* Traveler Authentication & Account Management Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        registeredUsers={registeredUsers}
+        onLogin={handleLoginUser}
+        onRegister={handleRegisterUser}
+        onSwitchUser={handleSwitchUser}
+        initialTab={authModalTab}
+      />
 
       {/* Footer */}
       <footer className="app-footer">

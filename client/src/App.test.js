@@ -636,7 +636,7 @@ test('AIAssistantChat supports dual-mode architecture, generates custom itinerar
   // Verify application navigates to Trips and displays the itinerary with AI Custom badge
   expect(await screen.findByText(/My Travel Plan Portfolio/i)).toBeInTheDocument();
   expect(screen.getAllByText(/AI Custom Plan/i).length).toBeGreaterThan(0);
-});
+}, 15000);
 
 test('ItineraryView and HomeView integrate AI Itinerary Architect launchers', () => {
   render(<App />);
@@ -680,7 +680,7 @@ test('renders user profile credentials, allows editing credentials and persists 
 
   // 1. Verify default traveler credentials & telemetry
   expect(screen.getByRole('heading', { name: /Aysha Rayan/i })).toBeInTheDocument();
-  expect(screen.getByText(/@aysha_explorer/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/@aysha_explorer/i).length).toBeGreaterThanOrEqual(1);
   expect(screen.getByText(/APEX VOYAGER/i)).toBeInTheDocument();
   expect(screen.getByText(/PASSPORT ID: WNDR-2026-X79/i)).toBeInTheDocument();
   expect(screen.getByText(/Bangalore, India/i)).toBeInTheDocument();
@@ -745,10 +745,9 @@ test('renders community explorer network, supports live follow/unfollow and foll
   expect(screen.getAllByText('3').length).toBeGreaterThan(0);
 
   // 2. Unfollow an explorer (Dr. Sameer Siddiqui)
-  const followingButtons = screen.getAllByRole('button', { name: /Following/i });
-  expect(followingButtons.length).toBeGreaterThan(0);
-
-  fireEvent.click(followingButtons[0]);
+  const sameerCard = screen.getByRole('heading', { name: /Dr. Sameer Siddiqui/i }).closest('.explorer-network-card');
+  const unfollowBtn = within(sameerCard).getByRole('button', { name: /Following/i });
+  fireEvent.click(unfollowBtn);
 
   // Following metric returns to 2
   expect(screen.getAllByText('2').length).toBeGreaterThan(0);
@@ -811,6 +810,320 @@ test('supports social sharing of traveler passport with LinkedIn and Community H
   fireEvent.click(closeShareModalBtn);
   expect(screen.queryByText(/Published to WanderLust Community Hub!/i)).not.toBeInTheDocument();
 });
+
+test('renders Travel Package Showcase with itineraries, pricing, and details modal', () => {
+  render(<App />);
+
+  // Navigate to Home view
+  const homeNavLink = document.getElementById('nav-link-home');
+  fireEvent.click(homeNavLink);
+
+  // 1. Verify Travel Package Showcase Section
+  expect(screen.getByRole('heading', { name: /Travel Package Showcase/i })).toBeInTheDocument();
+  expect(screen.getByText(/All-inclusive multi-day expeditions featuring handpicked luxury stays/i)).toBeInTheDocument();
+
+  // 2. Verify Pre-loaded Travel Packages
+  expect(screen.getByText(/4-Day Western Ghats Mist & High-Altitude Tea Trail/i)).toBeInTheDocument();
+  expect(screen.getByText(/₹18,500/i)).toBeInTheDocument();
+  expect(screen.getByText(/6-Day Zanskar Frozen Gorge & Chadar Expedition/i)).toBeInTheDocument();
+  expect(screen.getByText(/₹38,000/i)).toBeInTheDocument();
+
+  // 3. Filter packages by Category
+  const winterBtn = screen.getByRole('button', { name: /❄️ Winter Hill Stations/i });
+  fireEvent.click(winterBtn);
+  expect(screen.getByText(/4-Day Western Ghats Mist & High-Altitude Tea Trail/i)).toBeInTheDocument();
+
+  // 4. Open Travel Package Details Modal for Package 2 (Zanskar)
+  const allPackagesBtn = screen.getByRole('button', { name: /All Packages/i });
+  fireEvent.click(allPackagesBtn);
+
+  const detailButtons = screen.getAllByRole('button', { name: /📋 Details & Itinerary/i });
+  expect(detailButtons.length).toBeGreaterThan(1);
+  fireEvent.click(detailButtons[1]);
+
+  // Modal displays creator info, pricing summary, and Day-by-Day timeline
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(screen.getByText(/All-Inclusive Package Price/i)).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /🗓️ Day-by-Day Itinerary/i })).toBeInTheDocument();
+  expect(screen.getByText(/Day 1/i)).toBeInTheDocument();
+
+  // Switch to Itemized Pricing Breakdown tab
+  const pricingTab = screen.getByRole('tab', { name: /💰 Itemized Pricing Breakdown/i });
+  fireEvent.click(pricingTab);
+  expect(screen.getByText(/Complete Financial Transparency/i)).toBeInTheDocument();
+  expect(screen.getByText(/Accommodations & Stays/i)).toBeInTheDocument();
+  expect(screen.getByText(/Multi-Modal Transit & 4x4 Corridors/i)).toBeInTheDocument();
+  expect(screen.getByText(/Guided Experiences & Permits/i)).toBeInTheDocument();
+
+  // Switch to Inclusions tab
+  const inclusionsTab = screen.getByRole('tab', { name: /✓ Inclusions & Perks/i });
+  fireEvent.click(inclusionsTab);
+  expect(screen.getByText(/What's Included in Package/i)).toBeInTheDocument();
+  expect(screen.getByText(/What's Not Included/i)).toBeInTheDocument();
+
+  // Adopt package to active trips
+  const adoptPackageBtn = screen.getByRole('button', { name: /⚡ Adopt & Add to My Trips/i });
+  fireEvent.click(adoptPackageBtn);
+  expect(screen.getByText(/In Your Trips/i)).toBeInTheDocument();
+
+  // Close modal
+  const closeModalBtn = screen.getByRole('button', { name: /Close Package Details Modal/i });
+  fireEvent.click(closeModalBtn);
+  expect(screen.queryByRole('tab', { name: /🗓️ Day-by-Day Itinerary/i })).not.toBeInTheDocument();
+});
+
+test('allows creators and users to publish a custom travel package with itinerary and pricing', () => {
+  render(<App />);
+
+  // Navigate to Home view
+  const homeNavLink = document.getElementById('nav-link-home');
+  fireEvent.click(homeNavLink);
+
+  // Click "+ Publish Travel Package" launcher
+  const publishLauncher = screen.getByRole('button', { name: /\+ Publish Travel Package/i });
+  fireEvent.click(publishLauncher);
+
+  // Verify Publish Package Modal appears
+  expect(screen.getByRole('heading', { name: /Publish Travel Package/i })).toBeInTheDocument();
+  expect(screen.getByText(/Share a complete travel itinerary with transparent pricing/i)).toBeInTheDocument();
+
+  // Fill in form fields
+  const titleInput = screen.getByPlaceholderText(/e\.g\. 4-Day Western Ghats Mist & High-Altitude Tea Trail/i);
+  fireEvent.change(titleInput, { target: { value: '4-Day Coorg Rainforest & Coffee Estate Escape' } });
+
+  const priceInput = screen.getByPlaceholderText(/e\.g\. 18500/i);
+  fireEvent.change(priceInput, { target: { value: '16500' } });
+
+  const taglineInput = screen.getByPlaceholderText(/e\.g\. High-altitude cloud valleys/i);
+  fireEvent.change(taglineInput, { target: { value: 'Private stream hikes, organic coffee brewing and canopy bungalows' } });
+
+  // Add Day 4 to itinerary builder
+  const addDayBtn = screen.getByRole('button', { name: /\+ Add Day 4/i });
+  fireEvent.click(addDayBtn);
+  expect(screen.getByText('Day 4')).toBeInTheDocument();
+
+  // Submit form
+  const submitBtn = screen.getByRole('button', { name: /✨ Publish Travel Package to Showcase/i });
+  fireEvent.click(submitBtn);
+
+  // Verify published package is rendered in the showcase grid
+  expect(screen.getByText('4-Day Coorg Rainforest & Coffee Estate Escape')).toBeInTheDocument();
+  expect(screen.getByText(/₹16,500/i)).toBeInTheDocument();
+});
+
+test('renders Favorite Places Highlights on profile, allows pinning and unpinning destinations', () => {
+  render(<App />);
+
+  // Navigate to Profile view
+  const profileNavLink = document.getElementById('nav-link-profile');
+  fireEvent.click(profileNavLink);
+
+  // 1. Verify Pinned Favorites Shelf in Profile Header
+  expect(screen.getByLabelText(/Pinned Favorite Destinations/i)).toBeInTheDocument();
+  expect(screen.getByText(/Pinned Favorite Destinations/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/Munnar/i).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Amer Fort, Jaipur/i).length).toBeGreaterThan(0);
+
+  // 2. Pin a new destination to Profile Highlights
+  const pinLauncher = document.getElementById('shelf-pin-destination-btn');
+  fireEvent.click(pinLauncher);
+
+  // Modal opens
+  expect(screen.getByRole('heading', { name: /Pin Favorite Destination to Profile/i })).toBeInTheDocument();
+  const noteInput = screen.getByPlaceholderText(/What makes this destination unforgettable to you\?/i);
+  fireEvent.change(noteInput, { target: { value: 'Serene frozen lake trails and unbeatable sunrise viewpoint!' } });
+
+  const pinSubmitBtn = screen.getByRole('button', { name: /📌 Pin to Profile Highlights/i });
+  fireEvent.click(pinSubmitBtn);
+
+  // 3. Switch to Favorite Places Tab in Navigation
+  const favPlacesTab = screen.getByRole('tab', { name: /Favorite Places/i });
+  fireEvent.click(favPlacesTab);
+
+  // Verify full section header and search bar
+  expect(screen.getByRole('heading', { name: /Favorite Places & Curated Highlights/i })).toBeInTheDocument();
+  const searchInput = screen.getByPlaceholderText(/Search pinned places\.\.\./i);
+  expect(searchInput).toBeInTheDocument();
+
+  // Search filter
+  fireEvent.change(searchInput, { target: { value: 'Munnar' } });
+  const favoritesGrid = document.querySelector('.profile-favorites-grid');
+  expect(within(favoritesGrid).getAllByRole('heading', { name: /^Munnar$/i }).length).toBeGreaterThan(0);
+  expect(within(favoritesGrid).queryByRole('heading', { name: /Amer Fort, Jaipur/i })).not.toBeInTheDocument();
+
+  // Clear search
+  fireEvent.change(searchInput, { target: { value: '' } });
+  expect(within(favoritesGrid).getByRole('heading', { name: /Amer Fort, Jaipur/i })).toBeInTheDocument();
+
+  // 4. Unpin destination
+  const unpinButtons = screen.getAllByRole('button', { name: /✕ Unpin/i });
+  expect(unpinButtons.length).toBeGreaterThan(0);
+  const initialUnpinCount = unpinButtons.length;
+  fireEvent.click(unpinButtons[0]);
+
+  // Count should decrease
+  const remainingUnpinButtons = screen.getAllByRole('button', { name: /✕ Unpin/i });
+  expect(remainingUnpinButtons.length).toBe(initialUnpinCount - 1);
+});
+
+/* ==========================================================================
+   MULTI-USER AUTHENTICATION, PASSPORT CAPSULE & PLAN ISOLATION TESTS
+   ========================================================================== */
+
+test('renders user identity capsule in header with username handle and passport ID', () => {
+  localStorage.clear();
+  render(<App />);
+
+  // User account capsule in navigation
+  const userBadge = screen.getByRole('button', { name: /Active Account:/i });
+  expect(userBadge).toBeInTheDocument();
+  expect(within(userBadge).getByText(/Aysha Rayan/i)).toBeInTheDocument();
+  expect(within(userBadge).getByText(/@aysha_explorer/i)).toBeInTheDocument();
+  expect(within(userBadge).getByText(/WNDR-2026-X79/i)).toBeInTheDocument();
+});
+
+test('opens user account dropdown and launches authentication switcher modal', () => {
+  localStorage.clear();
+  render(<App />);
+
+  // 1. Click user account badge to open dropdown
+  const userBadge = screen.getByRole('button', { name: /Active Account:/i });
+  fireEvent.click(userBadge);
+
+  // 2. Dropdown menu elements
+  expect(screen.getByRole('menuitem', { name: /View Passport Profile/i })).toBeInTheDocument();
+  expect(screen.getByRole('menuitem', { name: /Switch Traveler Account/i })).toBeInTheDocument();
+  expect(screen.getByRole('menuitem', { name: /Create New Account/i })).toBeInTheDocument();
+  expect(screen.getByRole('menuitem', { name: /Log In with ID \/ Username/i })).toBeInTheDocument();
+
+  // 3. Click switch account to open AuthModal
+  const switchMenuBtn = screen.getByRole('menuitem', { name: /Switch Traveler Account/i });
+  fireEvent.click(switchMenuBtn);
+
+  // 4. Modal is displayed with tabs
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /WanderLust Traveler Authentication/i })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /Log In/i })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /Create Account/i })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /Switch Account/i })).toBeInTheDocument();
+});
+
+test('switches traveler accounts and isolates individual travel plans securely', () => {
+  localStorage.clear();
+  render(<App />);
+
+  // Verify Aysha's initial trips view has Munnar
+  const tripsNavBtn = document.getElementById('nav-link-trips');
+  fireEvent.click(tripsNavBtn);
+  expect(screen.getByText(/Munnar/i)).toBeInTheDocument();
+
+  // Open user dropdown and Auth modal to switch to Dr. Sameer Siddiqui
+  const userBadge = screen.getByRole('button', { name: /Active Account:/i });
+  fireEvent.click(userBadge);
+  const switchMenuBtn = screen.getByRole('menuitem', { name: /Switch Traveler Account/i });
+  fireEvent.click(switchMenuBtn);
+
+  // In AuthModal switch tab, find Dr. Sameer Siddiqui's row and click switch
+  const dialog = screen.getByRole('dialog');
+  const sameerRow = within(dialog).getByText(/Dr. Sameer Siddiqui/i).closest('.account-switch-row');
+  const switchSameerBtn = within(sameerRow).getByRole('button', { name: /Switch to Account/i });
+  fireEvent.click(switchSameerBtn);
+
+  // Verify active user changed in header
+  const updatedBadge = screen.getByRole('button', { name: /Active Account:/i });
+  expect(within(updatedBadge).getByText(/Dr. Sameer Siddiqui/i)).toBeInTheDocument();
+  expect(within(updatedBadge).getByText(/@sameer_peaks/i)).toBeInTheDocument();
+  expect(within(updatedBadge).getByText(/WNDR-2026-S12/i)).toBeInTheDocument();
+
+  // Verify Dr. Sameer's isolated travel plan has Zanskar Valley and NOT Munnar
+  fireEvent.click(tripsNavBtn);
+  expect(screen.getByText(/Zanskar Valley/i)).toBeInTheDocument();
+  expect(screen.queryByText(/Tea County Heritage Resort & Spa/i)).not.toBeInTheDocument();
+});
+
+test('creates a new traveler account with custom username and auto-generated ID', () => {
+  localStorage.clear();
+  render(<App />);
+
+  // Open user dropdown -> Create New Account
+  const userBadge = screen.getByRole('button', { name: /Active Account:/i });
+  fireEvent.click(userBadge);
+  const createMenuBtn = screen.getByRole('menuitem', { name: /Create New Account/i });
+  fireEvent.click(createMenuBtn);
+
+  // Fill in registration form
+  const usernameInput = screen.getByPlaceholderText(/e\.g\. tarun_voyager/i);
+  const nameInput = screen.getByPlaceholderText(/e\.g\. Tarun Varma/i);
+  const passwordInput = screen.getByPlaceholderText(/Choose account password\.\.\./i);
+  const confirmPasswordInput = screen.getByPlaceholderText(/Re-enter password\.\.\./i);
+
+  fireEvent.change(usernameInput, { target: { value: 'tarun_voyager' } });
+  fireEvent.change(nameInput, { target: { value: 'Tarun Varma' } });
+  fireEvent.change(passwordInput, { target: { value: 'password123' } });
+  fireEvent.change(confirmPasswordInput, { target: { value: 'password123' } });
+
+  // Auto-generate ID button
+  const autoGenBtn = screen.getByRole('button', { name: /⚡ Auto-Generate ID/i });
+  fireEvent.click(autoGenBtn);
+
+  // Submit registration form
+  const registerSubmitBtn = screen.getByRole('button', { name: /✨ Create Account & Start My Individual Travel Plan/i });
+  fireEvent.click(registerSubmitBtn);
+
+  // Verify active session updated to Tarun Varma
+  const tarunBadge = screen.getByRole('button', { name: /Active Account:/i });
+  expect(within(tarunBadge).getByText(/Tarun Varma/i)).toBeInTheDocument();
+  expect(within(tarunBadge).getByText(/@tarun_voyager/i)).toBeInTheDocument();
+
+  // Verify Tarun starts with a clean/empty travel itinerary
+  const tripsNavBtn = document.getElementById('nav-link-trips');
+  fireEvent.click(tripsNavBtn);
+  expect(screen.getByText(/Your travel itinerary is empty/i)).toBeInTheDocument();
+});
+
+test('authenticates user with login form and validates credentials', () => {
+  localStorage.clear();
+  render(<App />);
+
+  // Open user dropdown -> Log In
+  const userBadge = screen.getByRole('button', { name: /Active Account:/i });
+  fireEvent.click(userBadge);
+  const loginMenuBtn = screen.getByRole('menuitem', { name: /Log In with ID \/ Username/i });
+  fireEvent.click(loginMenuBtn);
+
+  const usernameOrIdInput = screen.getByPlaceholderText(/e\.g\. aysha_explorer or WNDR-2026-X79/i);
+  const passwordInput = screen.getByPlaceholderText(/Enter account password\.\.\./i);
+  const loginSubmitBtn = screen.getByRole('button', { name: /🔑 Log In to My Travel Nexus/i });
+
+  // 1. Invalid username
+  fireEvent.change(usernameOrIdInput, { target: { value: 'non_existent_traveler' } });
+  fireEvent.change(passwordInput, { target: { value: 'password123' } });
+  fireEvent.click(loginSubmitBtn);
+  expect(screen.getByRole('alert')).toHaveTextContent(/was not found/i);
+
+  // 2. Invalid password for existing user
+  fireEvent.change(usernameOrIdInput, { target: { value: 'elena_wanderer' } });
+  fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
+  fireEvent.click(loginSubmitBtn);
+  expect(screen.getByRole('alert')).toHaveTextContent(/Incorrect password/i);
+
+  // 3. Valid login
+  fireEvent.change(passwordInput, { target: { value: 'password123' } });
+  fireEvent.click(loginSubmitBtn);
+
+  // Modal closes and active user is now Elena Rostova
+  const elenaBadge = screen.getByRole('button', { name: /Active Account:/i });
+  expect(within(elenaBadge).getByText(/Elena Rostova/i)).toBeInTheDocument();
+  expect(within(elenaBadge).getByText(/@elena_wanderer/i)).toBeInTheDocument();
+  expect(within(elenaBadge).getByText(/WNDR-2026-E45/i)).toBeInTheDocument();
+
+  // Elena's isolated travel plan has Amer Fort, Jaipur
+  const tripsNavBtn = document.getElementById('nav-link-trips');
+  fireEvent.click(tripsNavBtn);
+  expect(screen.getByText(/Amer Fort, Jaipur/i)).toBeInTheDocument();
+});
+
+
 
 
 

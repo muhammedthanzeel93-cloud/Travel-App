@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { COMMUNITY_EXPLORERS, DEFAULT_USER_PROFILE } from '../data/destinationsData';
+import { COMMUNITY_EXPLORERS, DEFAULT_USER_PROFILE, INITIAL_FAVORITE_PLACES } from '../data/destinationsData';
+import PinDestinationModal from './PinDestinationModal';
+import apiClient from '../services/apiClient';
 
 /**
  * Initial Curated Seed Posts for the Instagram-Style Travel Feed
@@ -206,12 +208,15 @@ export default function ProfileView({
   onOpenAIChat,
   onOpenBudgetModal,
   onOpenCreateModal,
-  showToast
+  onSelectDestination,
+  onQuickAdd,
+  showToast,
+  onOpenAuthModal
 }) {
   const profile = userProfile || DEFAULT_USER_PROFILE;
 
   // Active view tab in Instagram Profile
-  const [activeProfileTab, setActiveProfileTab] = useState('posts'); // 'posts' | 'community' | 'trips' | 'badges'
+  const [activeProfileTab, setActiveProfileTab] = useState('posts'); // 'posts' | 'favorites' | 'community' | 'trips' | 'badges'
 
   // Feed display mode: 'grid' | 'feed'
   const [feedMode, setFeedMode] = useState('grid');
@@ -234,6 +239,53 @@ export default function ProfileView({
       console.error('LocalStorage write error for posts:', e);
     }
   }, [posts]);
+
+  // Favorite Places Highlights state with per-user localStorage persistence
+  const [favoritePlaces, setFavoritePlaces] = useState(() => {
+    try {
+      const userFavKey = `wanderlust_favorite_places_${profile.id}`;
+      const savedUserFav = localStorage.getItem(userFavKey);
+      if (savedUserFav) return JSON.parse(savedUserFav);
+
+      const saved = localStorage.getItem('wanderlust_favorite_places_v1');
+      if (saved && profile.id === 'user-aysha') return JSON.parse(saved);
+      return profile.id === 'user-aysha' ? INITIAL_FAVORITE_PLACES : [];
+    } catch (e) {
+      return profile.id === 'user-aysha' ? INITIAL_FAVORITE_PLACES : [];
+    }
+  });
+
+  // Re-sync favoritePlaces when profile.id changes
+  useEffect(() => {
+    try {
+      const userFavKey = `wanderlust_favorite_places_${profile.id}`;
+      const savedUserFav = localStorage.getItem(userFavKey);
+      if (savedUserFav) {
+        setFavoritePlaces(JSON.parse(savedUserFav));
+      } else {
+        setFavoritePlaces(profile.id === 'user-aysha' ? INITIAL_FAVORITE_PLACES : []);
+      }
+    } catch (e) {
+      setFavoritePlaces(profile.id === 'user-aysha' ? INITIAL_FAVORITE_PLACES : []);
+    }
+  }, [profile.id]);
+
+  // Sync favorite places to per-user localStorage
+  useEffect(() => {
+    try {
+      const userFavKey = `wanderlust_favorite_places_${profile.id}`;
+      localStorage.setItem(userFavKey, JSON.stringify(favoritePlaces));
+      if (profile.id === 'user-aysha') {
+        localStorage.setItem('wanderlust_favorite_places_v1', JSON.stringify(favoritePlaces));
+      }
+    } catch (e) {
+      console.error('LocalStorage write error for favorites:', e);
+    }
+  }, [favoritePlaces, profile.id]);
+
+  // Pin Destination Modal State
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [favoriteSearch, setFavoriteSearch] = useState('');
 
   // Post Creation Modal State
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
@@ -310,6 +362,30 @@ export default function ProfileView({
     setIsEditModalOpen(false);
   };
 
+  // Pin Destination to Profile Highlights
+  const handlePinDestination = (newFav) => {
+    setFavoritePlaces((prev) => {
+      const exists = prev.some((f) => f.destinationId === newFav.destinationId || f.name.toLowerCase() === newFav.name.toLowerCase());
+      if (exists) {
+        return prev.map((f) => (f.destinationId === newFav.destinationId || f.name.toLowerCase() === newFav.name.toLowerCase()) ? newFav : f);
+      }
+      return [newFav, ...prev];
+    });
+    if (showToast) {
+      showToast(`📌 Pinned ${newFav.name} to your profile highlights!`);
+    }
+    apiClient.pinFavoritePlace(newFav).catch(() => {});
+  };
+
+  // Unpin Destination from Profile Highlights
+  const handleUnpinDestination = (favId) => {
+    setFavoritePlaces((prev) => prev.filter((f) => f.id !== favId && f.destinationId !== favId));
+    if (showToast) {
+      showToast('Unpinned destination from your profile highlights.');
+    }
+    apiClient.unpinFavoritePlace(favId).catch(() => {});
+  };
+
   // Follow / Unfollow explorer
   const handleExplorerFollowToggle = (explorer) => {
     if (onToggleFollow) {
@@ -334,6 +410,19 @@ export default function ProfileView({
       return !followingList.includes(exp.id);
     }
     return true;
+  });
+
+  // Filtered Favorite Places
+  const filteredFavoritePlaces = favoritePlaces.filter((fav) => {
+    if (!favoriteSearch) return true;
+    const q = favoriteSearch.toLowerCase();
+    return (
+      fav.name.toLowerCase().includes(q) ||
+      (fav.region && fav.region.toLowerCase().includes(q)) ||
+      (fav.category && fav.category.toLowerCase().includes(q)) ||
+      (fav.recommendationNote && fav.recommendationNote.toLowerCase().includes(q)) ||
+      (fav.highlightTag && fav.highlightTag.toLowerCase().includes(q))
+    );
   });
 
   // Handle Post Creation
@@ -567,6 +656,18 @@ export default function ProfileView({
                 >
                   📤 Share Passport
                 </button>
+
+                {onOpenAuthModal && (
+                  <button
+                    type="button"
+                    className="btn-ig-secondary btn-passport-auth"
+                    onClick={() => onOpenAuthModal('switch')}
+                    title="Switch Account or Log In with another User ID"
+                    id="btn-profile-switch-account"
+                  >
+                    👥 Accounts
+                  </button>
+                )}
               </div>
             </div>
 
@@ -575,6 +676,17 @@ export default function ProfileView({
               <div className="ig-stat-unit p-stat-box" onClick={() => setActiveProfileTab('posts')} role="button" tabIndex={0}>
                 <span className="ig-stat-count p-stat-number">{posts.length}</span>
                 <span className="ig-stat-tag p-stat-label">Posts</span>
+              </div>
+
+              <div
+                className="ig-stat-unit p-stat-box highlight-social"
+                onClick={() => handleTabClick('favorites', 'profile-favorites-section')}
+                role="button"
+                tabIndex={0}
+                title="View pinned favorite destinations"
+              >
+                <span className="ig-stat-count p-stat-number">{favoritePlaces.length}</span>
+                <span className="ig-stat-tag p-stat-label">Pinned Favorites</span>
               </div>
 
               <div
@@ -667,6 +779,100 @@ export default function ProfileView({
               <span className="ig-highlight-label">{hl.title}</span>
             </div>
           ))}
+        </div>
+
+        {/* =========================================================================
+            PINNED FAVORITE PLACES HIGHLIGHTS SHELF
+            ========================================================================= */}
+        <div className="profile-favorites-shelf" aria-label="Pinned Favorite Destinations">
+          <div className="shelf-header-row">
+            <div className="shelf-title-cluster">
+              <span className="shelf-pin-icon">⭐</span>
+              <span className="shelf-title">Pinned Favorite Destinations</span>
+              <span className="shelf-count-badge">{favoritePlaces.length} curated</span>
+            </div>
+            <button
+              type="button"
+              className="btn-shelf-pin-action"
+              onClick={() => setIsPinModalOpen(true)}
+              id="shelf-pin-destination-btn"
+              title="Pin a new favorite destination to your profile"
+            >
+              + Pin Destination
+            </button>
+          </div>
+
+          <div className="favorites-horizontal-track">
+            {favoritePlaces.map((fav) => (
+              <div key={fav.id} className="favorite-shelf-card">
+                <div className="fav-card-image-wrap">
+                  <img src={fav.image} alt={fav.name} className="fav-card-img" />
+                  <span className="fav-pin-tag">📌 {fav.highlightTag}</span>
+                  <span className="fav-rating-pill">★ {fav.rating}</span>
+                  <button
+                    type="button"
+                    className="fav-unpin-quick-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnpinDestination(fav.id);
+                    }}
+                    title={`Unpin ${fav.name} from profile`}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="fav-card-body">
+                  <h4 className="fav-card-name">{fav.name}</h4>
+                  <span className="fav-card-region">📍 {fav.region}</span>
+                  <p className="fav-card-note">"{fav.recommendationNote}"</p>
+                  <div className="fav-card-spots">
+                    {fav.mustVisitSpots?.slice(0, 2).map((spot, sIdx) => (
+                      <span key={sIdx} className="fav-spot-chip">✦ {spot}</span>
+                    ))}
+                  </div>
+                  <div className="fav-card-actions">
+                    <button
+                      type="button"
+                      className="btn-fav-explore"
+                      onClick={() => {
+                        const match = destinations.find((d) => d.id === fav.destinationId || d.name === fav.name);
+                        if (match && onSelectDestination) onSelectDestination(match);
+                        else if (onNavigate) onNavigate('explore');
+                      }}
+                    >
+                      🧭 Explore
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-fav-quick-add"
+                      onClick={() => {
+                        const match = destinations.find((d) => d.id === fav.destinationId || d.name === fav.name);
+                        if (match && onQuickAdd) onQuickAdd(match);
+                        else if (showToast) showToast(`Added ${fav.name} to trips!`);
+                      }}
+                    >
+                      + Add to Trip
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Quick Add Pin Card */}
+            <div
+              className="favorite-shelf-card add-card"
+              onClick={() => setIsPinModalOpen(true)}
+              role="button"
+              tabIndex={0}
+              title="Pin another recommended destination"
+            >
+              <div className="add-card-inner">
+                <div className="add-icon-circle">+</div>
+                <strong>Pin Another Place</strong>
+                <p>Showcase another favorite destination with your insider tip</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -807,6 +1013,16 @@ export default function ProfileView({
         >
           <span className="tab-icon">📷</span>
           <span className="tab-label">Posts ({posts.length})</span>
+        </button>
+
+        <button
+          className={`ig-nav-tab-btn ${activeProfileTab === 'favorites' ? 'active' : ''}`}
+          onClick={() => handleTabClick('favorites', 'profile-favorites-section')}
+          role="tab"
+          aria-selected={activeProfileTab === 'favorites'}
+        >
+          <span className="tab-icon">⭐</span>
+          <span className="tab-label">Favorite Places ({favoritePlaces.length})</span>
         </button>
 
         <button
@@ -1015,6 +1231,151 @@ export default function ProfileView({
             </div>
           )}
         </section>
+
+      {/* =========================================================================
+          FAVORITE PLACES & CURATED DESTINATION HIGHLIGHTS SECTION
+          ========================================================================= */}
+      <section
+        className={`profile-favorites-section ${activeProfileTab === 'favorites' ? 'tab-active' : ''}`}
+        id="profile-favorites-section"
+        aria-label="Favorite Places and Destination Highlights"
+      >
+        <div className="favorites-header-bar">
+          <div className="fav-title-group">
+            <div className="fav-badge-row">
+              <span className="fav-pin-icon">⭐</span>
+              <span className="fav-badge-tag">CURATED PROFILE SHOWCASE</span>
+            </div>
+            <h3 className="fav-section-title">Favorite Places & Curated Highlights</h3>
+            <p className="fav-section-subtitle">
+              Handpicked horizons, secret viewpoints & personal travel recommendations pinned by {profile.name}.
+            </p>
+          </div>
+
+          <div className="fav-actions-group">
+            <div className="fav-search-wrap">
+              <span className="search-icon">🔍</span>
+              <input
+                type="text"
+                placeholder="Search pinned places..."
+                value={favoriteSearch}
+                onChange={(e) => setFavoriteSearch(e.target.value)}
+                className="fav-search-input"
+              />
+              {favoriteSearch && (
+                <button className="clear-search-btn" onClick={() => setFavoriteSearch('')}>✕</button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="btn-pin-destination-main"
+              onClick={() => setIsPinModalOpen(true)}
+              id="btn-pin-destination-main"
+            >
+              + Pin Favorite Destination
+            </button>
+          </div>
+        </div>
+
+        {/* Favorite Places Grid */}
+        {filteredFavoritePlaces.length === 0 ? (
+          <div className="empty-favorites-card">
+            <span className="empty-icon">📌</span>
+            <h4>No Favorite Places Found</h4>
+            <p>Pin your most recommended destinations, hidden viewpoints, and insider tips to showcase on your profile.</p>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setIsPinModalOpen(true)}
+            >
+              + Pin Your First Favorite Destination
+            </button>
+          </div>
+        ) : (
+          <div className="profile-favorites-grid">
+            {filteredFavoritePlaces.map((fav) => {
+              const matchedDest = destinations.find((d) => d.id === fav.destinationId || d.name === fav.name);
+              const isAddedToTrip = myItinerary.some((item) => item.destinationId === fav.destinationId || item.destinationName === fav.name);
+
+              return (
+                <div key={fav.id} className="profile-favorite-card">
+                  <div className="fav-image-container">
+                    <img src={fav.image} alt={fav.name} className="fav-cover-img" />
+                    <div className="fav-image-overlay" />
+                    <span className="fav-floating-pin-badge">📌 {fav.highlightTag}</span>
+                    <span className="fav-rating-pill">★ {fav.rating}</span>
+                    <span className="fav-season-chip">🗓️ {fav.recommendedSeason}</span>
+                    <button
+                      type="button"
+                      className="btn-unpin-destination"
+                      onClick={() => handleUnpinDestination(fav.id)}
+                      title={`Unpin ${fav.name} from profile`}
+                    >
+                      ✕ Unpin
+                    </button>
+                  </div>
+
+                  <div className="fav-card-content">
+                    <div className="fav-location-row">
+                      <span className="fav-category-pill">{fav.category}</span>
+                      <span className="fav-region-text">📍 {fav.region}</span>
+                    </div>
+
+                    <h4 className="fav-dest-title">{fav.name}</h4>
+
+                    <div className="fav-recommendation-quote-box">
+                      <span className="quote-mark">“</span>
+                      <p className="recommendation-quote-text">{fav.recommendationNote}</p>
+                    </div>
+
+                    {fav.mustVisitSpots && fav.mustVisitSpots.length > 0 && (
+                      <div className="fav-must-visit-row">
+                        <span className="must-visit-label">Must-Visit:</span>
+                        <div className="must-visit-chips">
+                          {fav.mustVisitSpots.map((spot, sIdx) => (
+                            <span key={sIdx} className="spot-tag-chip">✦ {spot}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="fav-card-footer-actions">
+                      <button
+                        type="button"
+                        className="btn-fav-explore-details"
+                        onClick={() => {
+                          if (matchedDest && onSelectDestination) {
+                            onSelectDestination(matchedDest);
+                          } else if (onNavigate) {
+                            onNavigate('explore');
+                          }
+                        }}
+                      >
+                        🧭 Explore Destination ➔
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`btn-fav-add-trip ${isAddedToTrip ? 'added' : ''}`}
+                        onClick={() => {
+                          if (matchedDest && onQuickAdd) {
+                            onQuickAdd(matchedDest);
+                          } else if (showToast) {
+                            showToast(`Added ${fav.name} to active trips!`);
+                          }
+                        }}
+                      >
+                        {isAddedToTrip ? '✓ In Trips' : '+ Add to Trip'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* =========================================================================
           POST DETAIL MODAL (LIGHTBOX)
@@ -1627,6 +1988,17 @@ export default function ProfileView({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Pin Destination to Profile Modal */}
+      {isPinModalOpen && (
+        <PinDestinationModal
+          isOpen={isPinModalOpen}
+          onClose={() => setIsPinModalOpen(false)}
+          destinations={destinations}
+          pinnedIds={favoritePlaces.map((f) => f.destinationId || f.id)}
+          onPinDestination={handlePinDestination}
+        />
       )}
     </div>
   );

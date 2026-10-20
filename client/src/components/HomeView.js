@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { INITIAL_TRAVEL_PACKAGES } from '../data/destinationsData';
+import TravelPackageModal from './TravelPackageModal';
+import PublishPackageModal from './PublishPackageModal';
+import apiClient from '../services/apiClient';
 
 /**
  * Curated Story Highlights from Followed Creators & Users
@@ -319,8 +323,104 @@ export default function HomeView({
   // Filter for Trending / Winter Horizons tab
   const [trendingSeasonFilter, setTrendingSeasonFilter] = useState('all'); // 'all' | 'winter' | 'warm' | 'royal'
 
-  // Filter for Followed Creator Plans
-  const [selectedCreatorFilter, setSelectedCreatorFilter] = useState('all'); // 'all' | 'user-sameer' | 'user-elena' | etc.
+  // Travel Package Showcase State with localStorage persistence
+  const [packages, setPackages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wanderlust_travel_packages_v1');
+      return saved ? JSON.parse(saved) : INITIAL_TRAVEL_PACKAGES;
+    } catch (e) {
+      return INITIAL_TRAVEL_PACKAGES;
+    }
+  });
+
+  // Sync travel packages to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('wanderlust_travel_packages_v1', JSON.stringify(packages));
+    } catch (e) {
+      console.error('LocalStorage write error for packages:', e);
+    }
+  }, [packages]);
+
+  const [selectedPackageModal, setSelectedPackageModal] = useState(null);
+  const [isPublishPackageOpen, setIsPublishPackageOpen] = useState(false);
+  const [packageCategoryFilter, setPackageCategoryFilter] = useState('all'); // 'all' | 'winter' | 'altitude' | 'royal' | 'tropical' | 'my-published'
+
+  // Publish new travel package
+  const handlePublishPackage = (newPkg) => {
+    setPackages((prev) => [newPkg, ...prev]);
+    if (showToast) {
+      showToast(`✨ Travel package "${newPkg.title}" published successfully to the showcase!`);
+    }
+    apiClient.publishPackage(newPkg).catch(() => {});
+  };
+
+  // Adopt travel package directly to trips
+  const handleAdoptPackage = (pkg) => {
+    if (onAdoptCreatorPlan) {
+      onAdoptCreatorPlan({
+        ...pkg,
+        creator: pkg.creatorName,
+        items: pkg.destinationsCovered?.map((dName) => {
+          const match = destinations.find(
+            (d) => d.name.toLowerCase() === dName.toLowerCase() || d.id === pkg.primaryDestinationId
+          );
+          return {
+            destinationId: match ? match.id : pkg.primaryDestinationId || 'dest-pkg',
+            destinationName: match ? match.name : dName,
+            region: match ? match.region : 'Curated Region',
+            hotelName: pkg.itinerary?.[0]?.stay || 'Featured Eco-Resort',
+            roomName: 'Curated Room',
+            roomPrice: Math.round(pkg.price / (pkg.daysCount || 3)),
+            nights: pkg.nightsCount || 3
+          };
+        })
+      });
+    } else if (onQuickAdd) {
+      const match = destinations.find((d) => d.id === pkg.primaryDestinationId) || destinations[0];
+      if (match) onQuickAdd(match);
+    }
+    if (showToast) {
+      showToast(`⚡ Adopted "${pkg.title}" by ${pkg.creatorName}! Added to active trips.`);
+    }
+  };
+
+  // Filtered Travel Packages
+  const filteredPackages = useMemo(() => {
+    if (packageCategoryFilter === 'all') return packages;
+    if (packageCategoryFilter === 'my-published') {
+      return packages.filter(
+        (p) => p.creatorId === (userProfile.id || 'user-aysha') || p.tags?.includes('Community Published')
+      );
+    }
+    if (packageCategoryFilter === 'winter') {
+      return packages.filter(
+        (p) =>
+          p.category?.toLowerCase().includes('hill') ||
+          p.seasonBadge?.includes('Winter') ||
+          p.tags?.some((t) => t.toLowerCase().includes('winter'))
+      );
+    }
+    if (packageCategoryFilter === 'altitude') {
+      return packages.filter(
+        (p) =>
+          p.category?.toLowerCase().includes('altitude') ||
+          p.category?.toLowerCase().includes('snow') ||
+          p.tags?.some((t) => t.toLowerCase().includes('glacier') || t.toLowerCase().includes('trek'))
+      );
+    }
+    if (packageCategoryFilter === 'royal') {
+      return packages.filter(
+        (p) => p.category?.toLowerCase().includes('palace') || p.category?.toLowerCase().includes('heritage')
+      );
+    }
+    if (packageCategoryFilter === 'tropical') {
+      return packages.filter(
+        (p) => p.category?.toLowerCase().includes('coastal') || p.category?.toLowerCase().includes('tropical')
+      );
+    }
+    return packages;
+  }, [packages, packageCategoryFilter, userProfile.id]);
 
   // Combined stories: custom user stories + followed creator stories
   const allStories = useMemo(() => {
@@ -449,33 +549,6 @@ export default function HomeView({
       return true;
     });
   }, [destinations, trendingSeasonFilter]);
-
-  // Filtered creator plans
-  const filteredCreatorPlans = useMemo(() => {
-    if (selectedCreatorFilter === 'all') return CREATOR_TRAVEL_PLANS;
-    return CREATOR_TRAVEL_PLANS.filter((p) => p.creatorId === selectedCreatorFilter);
-  }, [selectedCreatorFilter]);
-
-  // Handle plan adoption
-  const handleAdoptPlan = (plan) => {
-    if (onAdoptCreatorPlan) {
-      onAdoptCreatorPlan(plan);
-    } else {
-      // Fallback
-      plan.items.forEach((item) => {
-        const dest = destinations.find((d) => d.id === item.destinationId) || {
-          id: item.destinationId,
-          name: item.destinationName,
-          region: item.region,
-          price: item.roomPrice
-        };
-        onQuickAdd(dest);
-      });
-      if (showToast) {
-        showToast(`✨ Adopted "${plan.title}" by ${plan.creator}!`);
-      }
-    }
-  };
 
   return (
     <div className="home-view-container" id="home-view">
@@ -1002,135 +1075,173 @@ export default function HomeView({
       </section>
 
       {/* =========================================================================
-          SECTION 5: DEDICATED POPULAR TRAVEL PLANS FROM FOLLOWED CREATORS
+          SECTION 5: TRAVEL PACKAGE SHOWCASE (ITINERARIES & PRICING)
           ========================================================================= */}
-      <section className="creator-plans-section" aria-label="Curated Travel Plans">
+      <section className="creator-plans-section travel-package-showcase-section" id="travel-packages-showcase" aria-label="Travel Package Showcase">
         <div className="section-header-row">
           <div>
-            <span className="section-micro-tag">COMMUNITY MASTERPIECES • VERIFIED ARCHITECTS</span>
-            <h2 className="section-title">Popular Travel Plans from Followed Creators</h2>
+            <span className="section-micro-tag">CURATED EXPEDITIONS & PACKAGES • VERIFIED CREATORS</span>
+            <h2 className="section-title">Travel Package Showcase</h2>
             <p className="section-subtitle">
-              Ready-to-book multi-day itineraries crafted by glaciologists, historians, and coastal architects.
+              All-inclusive multi-day expeditions featuring handpicked luxury stays, transit corridors, guided viewpoints, and full itinerary pricing.
             </p>
           </div>
 
-          <div className="creator-filter-pills-bar">
+          <div className="package-header-actions-bar">
             <button
-              className={`creator-filter-btn ${selectedCreatorFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setSelectedCreatorFilter('all')}
+              type="button"
+              className="btn-publish-package-launcher"
+              onClick={() => setIsPublishPackageOpen(true)}
+              id="btn-publish-package-launcher"
             >
-              All Creators ({CREATOR_TRAVEL_PLANS.length})
-            </button>
-            <button
-              className={`creator-filter-btn ${selectedCreatorFilter === 'user-sameer' ? 'active' : ''}`}
-              onClick={() => setSelectedCreatorFilter('user-sameer')}
-            >
-              Dr. Sameer
-            </button>
-            <button
-              className={`creator-filter-btn ${selectedCreatorFilter === 'user-elena' ? 'active' : ''}`}
-              onClick={() => setSelectedCreatorFilter('user-elena')}
-            >
-              Elena Rostova
-            </button>
-            <button
-              className={`creator-filter-btn ${selectedCreatorFilter === 'user-kenji' ? 'active' : ''}`}
-              onClick={() => setSelectedCreatorFilter('user-kenji')}
-            >
-              Kenji Sato
-            </button>
-            <button
-              className={`creator-filter-btn ${selectedCreatorFilter === 'user-chloe' ? 'active' : ''}`}
-              onClick={() => setSelectedCreatorFilter('user-chloe')}
-            >
-              Chloe Dupont
+              + Publish Travel Package
             </button>
           </div>
         </div>
 
-        <div className="creator-plans-grid">
-          {filteredCreatorPlans.map((plan) => {
-            const isFollowed = (userProfile.following || []).includes(plan.creatorId);
+        {/* Filter Pills Bar */}
+        <div className="creator-filter-pills-bar package-filter-pills-bar">
+          <button
+            className={`creator-filter-btn ${packageCategoryFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setPackageCategoryFilter('all')}
+          >
+            All Packages ({packages.length})
+          </button>
+          <button
+            className={`creator-filter-btn ${packageCategoryFilter === 'winter' ? 'active' : ''}`}
+            onClick={() => setPackageCategoryFilter('winter')}
+          >
+            ❄️ Winter Hill Stations
+          </button>
+          <button
+            className={`creator-filter-btn ${packageCategoryFilter === 'altitude' ? 'active' : ''}`}
+            onClick={() => setPackageCategoryFilter('altitude')}
+          >
+            🏔️ High Altitude & Glacier
+          </button>
+          <button
+            className={`creator-filter-btn ${packageCategoryFilter === 'royal' ? 'active' : ''}`}
+            onClick={() => setPackageCategoryFilter('royal')}
+          >
+            🏰 Royal Heritage
+          </button>
+          <button
+            className={`creator-filter-btn ${packageCategoryFilter === 'tropical' ? 'active' : ''}`}
+            onClick={() => setPackageCategoryFilter('tropical')}
+          >
+            🌴 Tropical Lagoons
+          </button>
+          <button
+            className={`creator-filter-btn ${packageCategoryFilter === 'my-published' ? 'active' : ''}`}
+            onClick={() => setPackageCategoryFilter('my-published')}
+          >
+            ✨ My Published ({packages.filter(p => p.creatorId === (userProfile.id || 'user-aysha') || p.tags?.includes('Community Published')).length})
+          </button>
+        </div>
+
+        {/* Packages Grid */}
+        <div className="creator-plans-grid travel-packages-grid">
+          {filteredPackages.map((pkg) => {
+            const isFollowed = (userProfile.following || []).includes(pkg.creatorId);
             const isAdopted = myItinerary.some((item) =>
-              plan.items.some((pi) => pi.destinationId === item.destinationId)
+              pkg.destinationsCovered?.some((dc) => item.destinationName === dc || item.name === dc)
             );
 
             return (
-              <div key={plan.id} className="creator-plan-card">
+              <div key={pkg.id} className="creator-plan-card travel-package-card">
                 {/* Creator Header */}
                 <div className="creator-plan-header">
                   <div className="creator-profile-badge">
-                    <div className="creator-avatar-hex">{plan.creatorAvatar}</div>
+                    <div className="creator-avatar-hex">{pkg.creatorAvatar || 'TP'}</div>
                     <div className="creator-titles">
                       <div className="creator-name-row">
-                        <strong>{plan.creator}</strong>
+                        <strong>{pkg.creatorName}</strong>
                         <span className="creator-badge-check">✓</span>
                       </div>
-                      <span className="creator-role-tag">{plan.creatorRole}</span>
+                      <span className="creator-role-tag">{pkg.creatorRole || 'Travel Architect'} • {pkg.creatorHandle}</span>
                     </div>
                   </div>
 
-                  <button
-                    className={`btn-follow-toggle ${isFollowed ? 'following' : ''}`}
-                    onClick={() => onToggleFollow && onToggleFollow(plan.creatorId)}
-                    title={isFollowed ? 'Following creator' : 'Follow creator'}
-                  >
-                    {isFollowed ? '✓ Following' : '+ Follow'}
-                  </button>
+                  {pkg.creatorId !== (userProfile.id || 'user-aysha') && onToggleFollow && (
+                    <button
+                      className={`btn-follow-toggle ${isFollowed ? 'following' : ''}`}
+                      onClick={() => onToggleFollow(pkg.creatorId)}
+                      title={isFollowed ? 'Following creator' : 'Follow creator'}
+                    >
+                      {isFollowed ? '✓ Following' : '+ Follow'}
+                    </button>
+                  )}
                 </div>
 
                 {/* Plan Cover Photo with Duration & Season Overlay */}
-                <div className="creator-plan-media">
-                  <img src={plan.coverImage} alt={plan.title} className="creator-plan-img" />
+                <div
+                  className="creator-plan-media"
+                  onClick={() => setSelectedPackageModal(pkg)}
+                  role="button"
+                  tabIndex={0}
+                  title="Click to view detailed itinerary & pricing"
+                >
+                  <img src={pkg.coverImage} alt={pkg.title} className="creator-plan-img" />
                   <div className="creator-plan-media-overlay" />
-                  <span className="plan-season-badge">{plan.seasonBadge}</span>
-                  <span className="plan-duration-badge">⏱️ {plan.duration}</span>
+                  <span className="plan-season-badge">{pkg.seasonBadge || '✨ Curated'}</span>
+                  <span className="plan-duration-badge">⏱️ {pkg.duration}</span>
+                  <span className="package-rating-badge">★ {pkg.rating || 4.9}</span>
                 </div>
 
-                {/* Plan Body */}
+                {/* Package Body */}
                 <div className="creator-plan-body">
-                  <h3 className="creator-plan-title">{plan.title}</h3>
-                  <p className="creator-plan-tagline">{plan.tagline}</p>
+                  <h3
+                    className="creator-plan-title"
+                    onClick={() => setSelectedPackageModal(pkg)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {pkg.title}
+                  </h3>
+                  <p className="creator-plan-tagline">{pkg.tagline}</p>
 
                   {/* Route Corridor Trail */}
                   <div className="creator-route-trail">
                     <span className="trail-label">Curated Route Corridor:</span>
                     <div className="trail-flow">
-                      {plan.routeHighlights[0]}
+                      {pkg.destinationsCovered?.join(' ➔ ') || pkg.routeHighlights?.[0]}
                     </div>
                   </div>
 
-                  {/* Tag Pills */}
+                  {/* Highlights / Inclusions Pills */}
                   <div className="creator-plan-tags">
-                    {plan.tags.map((tag, tIdx) => (
+                    {pkg.pricingDetails?.inclusions?.slice(0, 3).map((inc, iIdx) => (
+                      <span key={iIdx} className="creator-plan-tag-pill">✓ {inc}</span>
+                    )) || pkg.tags?.map((tag, tIdx) => (
                       <span key={tIdx} className="creator-plan-tag-pill">{tag}</span>
                     ))}
                   </div>
 
-                  {/* Budget & Adoption Footer */}
+                  {/* Budget & Actions Footer */}
                   <div className="creator-plan-footer">
                     <div className="plan-budget-callout">
-                      <span className="budget-micro">Estimated Budget</span>
-                      <strong className="budget-val">₹{plan.estimatedBudget.toLocaleString('en-IN')}</strong>
+                      <span className="budget-micro">All-Inclusive Price</span>
+                      <strong className="budget-val">₹{pkg.price?.toLocaleString('en-IN')}</strong>
+                      <span className="budget-sub-micro">/ person • verified stays</span>
                     </div>
 
                     <div className="plan-cta-cluster">
                       <button
-                        className={`btn-adopt-plan ${isAdopted ? 'adopted' : ''}`}
-                        onClick={() => handleAdoptPlan(plan)}
+                        type="button"
+                        className="btn-view-package-details"
+                        onClick={() => setSelectedPackageModal(pkg)}
+                        title="View Day-by-Day Itinerary & Pricing Breakdown"
                       >
-                        {isAdopted ? '✓ In Your Trips' : 'Adopt Plan ➔'}
+                        📋 Details & Itinerary
                       </button>
 
-                      {onOpenRoutePlanner && (
-                        <button
-                          className="btn-preview-route"
-                          onClick={onOpenRoutePlanner}
-                          title="Open Route Planner for this route"
-                        >
-                          🗺️ Route
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className={`btn-adopt-plan ${isAdopted ? 'adopted' : ''}`}
+                        onClick={() => handleAdoptPackage(pkg)}
+                      >
+                        {isAdopted ? '✓ In Trips' : 'Adopt ➔'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1339,6 +1450,31 @@ export default function HomeView({
           </button>
         </div>
       </section>
+
+      {/* Travel Package Details Modal */}
+      {selectedPackageModal && (
+        <TravelPackageModal
+          packageData={selectedPackageModal}
+          isOpen={!!selectedPackageModal}
+          onClose={() => setSelectedPackageModal(null)}
+          onAdoptPackage={handleAdoptPackage}
+          isAdopted={myItinerary.some((item) =>
+            selectedPackageModal.destinationsCovered?.some(
+              (dc) => item.destinationName === dc || item.name === dc
+            )
+          )}
+        />
+      )}
+
+      {/* Publish Travel Package Modal */}
+      {isPublishPackageOpen && (
+        <PublishPackageModal
+          isOpen={isPublishPackageOpen}
+          onClose={() => setIsPublishPackageOpen(false)}
+          onPublishPackage={handlePublishPackage}
+          userProfile={userProfile}
+        />
+      )}
     </div>
   );
 }

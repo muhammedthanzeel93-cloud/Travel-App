@@ -1,4 +1,4 @@
-const { userProfile, explorers, storyHighlights, posts } = require('../data/serverData');
+const { userProfile, explorers, storyHighlights, posts, favoritePlaces } = require('../data/serverData');
 
 /**
  * Controller: User Profile, Story Highlights & Community Network
@@ -94,6 +94,85 @@ const getCommunityExplorers = (req, res) => {
   });
 };
 
+const getFavoritePlaces = (req, res) => {
+  res.json({
+    success: true,
+    count: favoritePlaces.length,
+    data: favoritePlaces
+  });
+};
+
+const pinFavoritePlace = (req, res) => {
+  const { destinationId, name, region, category, rating, image, recommendationNote, highlightTag, recommendedSeason, mustVisitSpots } = req.body;
+
+  if (!name) {
+    return res.status(400).json({
+      success: false,
+      message: 'Destination name is required to pin to favorite highlights.'
+    });
+  }
+
+  // Check if already pinned
+  const existingIdx = favoritePlaces.findIndex((f) => f.destinationId === destinationId || f.name.toLowerCase() === name.toLowerCase());
+  if (existingIdx !== -1) {
+    // Update existing recommendation note
+    favoritePlaces[existingIdx] = {
+      ...favoritePlaces[existingIdx],
+      recommendationNote: recommendationNote || favoritePlaces[existingIdx].recommendationNote,
+      highlightTag: highlightTag || favoritePlaces[existingIdx].highlightTag,
+      pinnedAt: 'Pinned by Traveler'
+    };
+    return res.json({
+      success: true,
+      message: `${name} updated in your profile highlights!`,
+      data: favoritePlaces[existingIdx]
+    });
+  }
+
+  const newFavorite = {
+    id: `fav-${Date.now()}`,
+    destinationId: destinationId || `dest-${Date.now()}`,
+    name: name.trim(),
+    region: (region || 'Global Horizon').trim(),
+    category: (category || 'Curated Escape').trim(),
+    rating: Number(rating) || 4.8,
+    image: image || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1000&q=80',
+    recommendationNote: (recommendationNote || 'One of my all-time favorite travel spots! Highly recommended for explorers.').trim(),
+    highlightTag: (highlightTag || '⭐ Traveler Recommended').trim(),
+    recommendedSeason: (recommendedSeason || 'All-Season').trim(),
+    pinnedAt: 'Pinned by Traveler',
+    mustVisitSpots: Array.isArray(mustVisitSpots) && mustVisitSpots.length > 0 ? mustVisitSpots : ['Scenic Viewpoints', 'Local Food Gem']
+  };
+
+  favoritePlaces.unshift(newFavorite);
+
+  res.status(201).json({
+    success: true,
+    message: `${newFavorite.name} pinned to your profile highlights!`,
+    data: newFavorite
+  });
+};
+
+const unpinFavoritePlace = (req, res) => {
+  const { id } = req.params;
+  const index = favoritePlaces.findIndex((f) => f.id === id || f.destinationId === id);
+
+  if (index === -1) {
+    return res.status(404).json({
+      success: false,
+      message: `Favorite destination with ID ${id} not found.`
+    });
+  }
+
+  const removed = favoritePlaces.splice(index, 1)[0];
+
+  res.json({
+    success: true,
+    message: `${removed.name} unpinned from your profile highlights.`,
+    data: removed
+  });
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -101,5 +180,8 @@ module.exports = {
   getFollowers,
   getFollowing,
   toggleFollowExplorer,
-  getCommunityExplorers
+  getCommunityExplorers,
+  getFavoritePlaces,
+  pinFavoritePlace,
+  unpinFavoritePlace
 };

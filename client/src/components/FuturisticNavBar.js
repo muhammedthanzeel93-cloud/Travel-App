@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * FuturisticNavBar Component
  * A cutting-edge navigation dock featuring glowing holographic links,
  * glassmorphic translucent backdrop, live trip counters, search inputs,
+ * traveler identity passport capsule with multi-user switcher,
  * and quick-action launchers for AI, Budget, and Destination Creation.
  *
  * @param {Object} props
@@ -19,6 +20,12 @@ import React from 'react';
  * @param {Function} props.onOpenBudgetModal - Opens budget calculator modal
  * @param {Function} props.onOpenShareModal - Opens social sharing modal
  * @param {Function} props.onOpenAIChat - Opens WanderBot AI Assistant
+ * @param {Function} props.onOpenRoutePlanner - Opens multi-modal route planner
+ * @param {Object} props.currentUser - Active logged-in traveler account
+ * @param {Array} props.registeredUsers - List of all registered traveler accounts
+ * @param {Function} props.onOpenAuthModal - Opens authentication & registration modal
+ * @param {Function} props.onSwitchUser - Callback to switch active user account
+ * @param {Function} props.onLogout - Callback to sign out
  */
 export default function FuturisticNavBar({
   activeNav,
@@ -34,7 +41,29 @@ export default function FuturisticNavBar({
   onOpenShareModal,
   onOpenAIChat,
   onOpenRoutePlanner,
+  currentUser,
+  registeredUsers = [],
+  onOpenAuthModal,
+  onSwitchUser,
+  onLogout,
 }) {
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userMenuRef = useRef(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    if (isUserDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUserDropdownOpen]);
   const navItems = [
     {
       id: 'home',
@@ -244,6 +273,151 @@ export default function FuturisticNavBar({
           >
             ✦ Ask AI
           </button>
+
+          {/* User Account & Identity Capsule */}
+          <div className="nav-user-account-wrapper" ref={userMenuRef}>
+            <button
+              id="nav-user-profile-badge"
+              type="button"
+              className="user-nav-badge-cluster"
+              aria-label={`Active Account: ${currentUser?.name || 'Aysha Rayan'} (@${currentUser?.username || 'aysha_explorer'})`}
+              onClick={() => setIsUserDropdownOpen((prev) => !prev)}
+              title={`Active Account: ${currentUser?.name || 'Aysha Rayan'} (@${currentUser?.username || 'aysha_explorer'}) • ID: ${currentUser?.passportId || currentUser?.id || 'WNDR-2026-X79'}`}
+              aria-expanded={isUserDropdownOpen}
+              aria-haspopup="true"
+            >
+              <div className="nav-avatar-hex">
+                <span className="nav-avatar-initials">{currentUser?.avatarInitials || 'AR'}</span>
+              </div>
+              <div className="nav-user-meta">
+                <div className="nav-user-top">
+                  <span className="nav-user-name">{currentUser?.name || 'Aysha Rayan'}</span>
+                  <span className="nav-user-id-chip">{currentUser?.passportId || currentUser?.id || 'WNDR-2026-X79'}</span>
+                </div>
+                <span className="nav-user-handle">@{currentUser?.username || 'aysha_explorer'}</span>
+              </div>
+              <span className="nav-user-chevron">{isUserDropdownOpen ? '▲' : '▼'}</span>
+            </button>
+
+            {isUserDropdownOpen && (
+              <div className="user-account-dropdown-menu" role="menu" id="nav-user-dropdown">
+                <div className="dropdown-user-header">
+                  <div className="dropdown-avatar">{currentUser?.avatarInitials || 'AR'}</div>
+                  <div className="dropdown-header-info">
+                    <strong>{currentUser?.name || 'Aysha Rayan'}</strong>
+                    <span className="dropdown-handle">@{currentUser?.username || 'aysha_explorer'}</span>
+                    <span className="dropdown-passport-id">Passport ID: {currentUser?.passportId || currentUser?.id || 'WNDR-2026-X79'}</span>
+                    <span className="dropdown-tier-tag">✦ {currentUser?.tier || 'APEX VOYAGER'}</span>
+                  </div>
+                </div>
+
+                <div className="dropdown-divider" />
+
+                <button
+                  type="button"
+                  className="dropdown-menu-item"
+                  onClick={() => {
+                    setIsUserDropdownOpen(false);
+                    onNavChange('profile');
+                  }}
+                  role="menuitem"
+                  id="menu-item-view-profile"
+                >
+                  <span className="dropdown-item-icon">👤</span> View Passport Profile
+                </button>
+
+                <button
+                  type="button"
+                  className="dropdown-menu-item"
+                  onClick={() => {
+                    setIsUserDropdownOpen(false);
+                    onOpenAuthModal && onOpenAuthModal('switch');
+                  }}
+                  role="menuitem"
+                  id="menu-item-switch-account"
+                >
+                  <span className="dropdown-item-icon">👥</span> Switch Traveler Account
+                </button>
+
+                <button
+                  type="button"
+                  className="dropdown-menu-item"
+                  onClick={() => {
+                    setIsUserDropdownOpen(false);
+                    onOpenAuthModal && onOpenAuthModal('register');
+                  }}
+                  role="menuitem"
+                  id="menu-item-create-account"
+                >
+                  <span className="dropdown-item-icon">✨</span> Create New Account
+                </button>
+
+                <button
+                  type="button"
+                  className="dropdown-menu-item"
+                  onClick={() => {
+                    setIsUserDropdownOpen(false);
+                    onOpenAuthModal && onOpenAuthModal('login');
+                  }}
+                  role="menuitem"
+                  id="menu-item-login"
+                >
+                  <span className="dropdown-item-icon">🔑</span> Log In with ID / Username
+                </button>
+
+                {registeredUsers && registeredUsers.length > 1 && (
+                  <>
+                    <div className="dropdown-divider" />
+                    <div className="dropdown-quick-switch-section">
+                      <span className="dropdown-section-title">Quick Switch Account:</span>
+                      <div className="dropdown-quick-users-list">
+                        {registeredUsers
+                          .filter((u) => u.id !== currentUser?.id)
+                          .slice(0, 3)
+                          .map((u) => (
+                            <button
+                              key={u.id}
+                              type="button"
+                              className="dropdown-quick-user-btn"
+                              onClick={() => {
+                                setIsUserDropdownOpen(false);
+                                onSwitchUser && onSwitchUser(u);
+                              }}
+                              title={`Switch to ${u.name} (@${u.username})`}
+                            >
+                              <span className="quick-avatar">{u.avatarInitials}</span>
+                              <div className="quick-user-info">
+                                <span className="quick-name">{u.name}</span>
+                                <span className="quick-sub">@{u.username} • {u.passportId || u.id}</span>
+                              </div>
+                              <span className="quick-arrow">➔</span>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {onLogout && (
+                  <>
+                    <div className="dropdown-divider" />
+                    <button
+                      type="button"
+                      className="dropdown-menu-item text-danger"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        onLogout();
+                      }}
+                      role="menuitem"
+                      id="menu-item-logout"
+                    >
+                      <span className="dropdown-item-icon">🚪</span> Sign Out
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

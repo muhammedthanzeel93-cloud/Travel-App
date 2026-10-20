@@ -91,6 +91,18 @@ export const apiClient = {
       method: 'POST'
     }),
 
+  // Travel Packages & Expeditions Showcase
+  getPackages: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/packages${query ? `?${query}` : ''}`);
+  },
+  getPackageById: (id) => request(`/packages/${id}`),
+  publishPackage: (data) =>
+    request('/packages', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
   // User Profile & Community
   getProfile: () => request('/profile'),
   updateProfile: (data) =>
@@ -106,13 +118,49 @@ export const apiClient = {
       method: 'POST'
     }),
   getCommunityExplorers: () => request('/profile/community'),
+  getFavoritePlaces: () => request('/profile/favorites'),
+  pinFavoritePlace: (data) =>
+    request('/profile/favorites', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  unpinFavoritePlace: (id) =>
+    request(`/profile/favorites/${id}`, {
+      method: 'DELETE'
+    }),
 
   // Dynamic Budget
   calculateBudget: (data) =>
     request('/budget/calculate', {
       method: 'POST',
       body: JSON.stringify(data)
+    }),
+
+  // User Authentication & Multi-User Plan Management
+  register: (userData) =>
+    request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    }),
+  login: (credentials) =>
+    request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials)
+    }),
+  getAuthUsers: () => request('/auth/users'),
+  getAuthMe: (userId) => request(`/auth/me${userId ? `?userId=${userId}` : ''}`),
+  getUserItinerary: (userId) => request(`/auth/itinerary/${userId}`),
+  saveUserItinerary: (userId, itinerary) =>
+    request(`/auth/itinerary/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify({ itinerary })
+    }),
+  updateAuthProfile: (userId, data) =>
+    request(`/auth/profile/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
     })
 };
 
 export default apiClient;
+

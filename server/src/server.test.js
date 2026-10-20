@@ -199,6 +199,148 @@ async function runServerTests() {
       assert.ok(res.body.data.grandTotal > 0);
       assert.ok(res.body.data.breakdown.accommodation > 0);
     });
+
+    // 8. Travel Package Showcase
+    await test('GET /api/packages returns curated travel packages list', async () => {
+      const res = await makeRequest('/api/packages');
+      assert.strictEqual(res.statusCode, 200);
+      assert.ok(Array.isArray(res.body.data));
+      assert.ok(res.body.data.length > 0);
+      assert.ok(res.body.data[0].pricingDetails);
+      assert.ok(Array.isArray(res.body.data[0].itinerary));
+    });
+
+    await test('POST /api/packages publishes new detailed travel package', async () => {
+      const payload = {
+        title: '5-Day Coastal Cliffs & Spice Route',
+        duration: '5 Days / 4 Nights',
+        price: 21000,
+        category: 'Coastal Expedition',
+        destinationsCovered: ['Varkala', 'Kochi', 'Alleppey'],
+        highlights: ['Sunset cliff dining', 'Backwaters houseboat stay'],
+        itinerary: [
+          { day: 1, title: 'Arrival at Varkala', morning: 'Transit to cliff resort', evening: 'Sunset beach walk' },
+          { day: 2, title: 'Backwaters cruise', morning: 'Houseboat check-in', evening: 'Traditional seafood dinner' }
+        ]
+      };
+      const res = await makeRequest('/api/packages', 'POST', payload);
+      assert.strictEqual(res.statusCode, 201);
+      assert.strictEqual(res.body.success, true);
+      assert.strictEqual(res.body.data.title, '5-Day Coastal Cliffs & Spice Route');
+      assert.strictEqual(res.body.data.price, 21000);
+      assert.ok(Array.isArray(res.body.data.itinerary));
+    });
+
+    // 9. Profile Favorite Places Highlights
+    await test('GET /api/profile/favorites returns pinned favorite destinations', async () => {
+      const res = await makeRequest('/api/profile/favorites');
+      assert.strictEqual(res.statusCode, 200);
+      assert.ok(Array.isArray(res.body.data));
+      assert.ok(res.body.data.length > 0);
+      assert.ok(res.body.data[0].recommendationNote);
+    });
+
+    await test('POST /api/profile/favorites pins a destination with recommendation note', async () => {
+      const payload = {
+        destinationId: 'varkala-kerala',
+        name: 'Varkala Beach Cliffs',
+        region: 'Kerala, India',
+        category: 'Coastal',
+        rating: 4.8,
+        recommendationNote: 'Sitting at cliff cafes watching the sunset over the Arabian Sea is unforgettable!',
+        highlightTag: '🌅 Cliff Sunsets'
+      };
+      const res = await makeRequest('/api/profile/favorites', 'POST', payload);
+      assert.strictEqual(res.statusCode, 201);
+      assert.strictEqual(res.body.success, true);
+      assert.strictEqual(res.body.data.name, 'Varkala Beach Cliffs');
+    });
+
+    await test('DELETE /api/profile/favorites/:id unpins a destination from profile', async () => {
+      const res = await makeRequest('/api/profile/favorites/varkala-kerala', 'DELETE');
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.body.success, true);
+      assert.strictEqual(res.body.data.name, 'Varkala Beach Cliffs');
+    });
+
+    // 10. User Authentication & Individual Travel Plans
+    await test('GET /api/auth/users returns available registered accounts', async () => {
+      const res = await makeRequest('/api/auth/users');
+      assert.strictEqual(res.statusCode, 200);
+      assert.ok(Array.isArray(res.body));
+      assert.ok(res.body.length >= 3);
+      assert.ok(res.body.some((u) => u.username === 'aysha_explorer'));
+      assert.ok(res.body.some((u) => u.username === 'sameer_peaks'));
+    });
+
+    await test('POST /api/auth/register creates a new user account with username and ID', async () => {
+      const payload = {
+        username: 'tarun_voyager',
+        id: 'user-tarun',
+        name: 'Tarun Varma',
+        password: 'securePass123',
+        travelStyle: 'High-Altitude Alpinist',
+        location: 'Shimla, India',
+        initialItinerary: [
+          {
+            destinationId: 2,
+            destinationName: 'Zanskar Frozen River & Chadar Trail',
+            nights: 5
+          }
+        ]
+      };
+      const res = await makeRequest('/api/auth/register', 'POST', payload);
+      assert.strictEqual(res.statusCode, 201);
+      assert.strictEqual(res.body.success, true);
+      assert.strictEqual(res.body.user.username, 'tarun_voyager');
+      assert.strictEqual(res.body.user.id, 'user-tarun');
+      assert.ok(res.body.token);
+    });
+
+    await test('POST /api/auth/login authenticates with username or ID and password', async () => {
+      const payload = {
+        usernameOrId: 'tarun_voyager',
+        password: 'securePass123'
+      };
+      const res = await makeRequest('/api/auth/login', 'POST', payload);
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.body.success, true);
+      assert.strictEqual(res.body.user.name, 'Tarun Varma');
+      assert.ok(res.body.token);
+    });
+
+    await test('POST /api/auth/login rejects invalid credentials with 401', async () => {
+      const payload = {
+        usernameOrId: 'tarun_voyager',
+        password: 'wrongPassword'
+      };
+      const res = await makeRequest('/api/auth/login', 'POST', payload);
+      assert.strictEqual(res.statusCode, 401);
+      assert.ok(res.body.error);
+    });
+
+    await test('GET & POST /api/auth/itinerary/:userId manages individual user travel plans securely', async () => {
+      // 1. Get Tarun's initial itinerary
+      const getRes = await makeRequest('/api/auth/itinerary/user-tarun');
+      assert.strictEqual(getRes.statusCode, 200);
+      assert.strictEqual(getRes.body.count, 1);
+      assert.strictEqual(getRes.body.itinerary[0].destinationName, 'Zanskar Frozen River & Chadar Trail');
+
+      // 2. Update Tarun's individual travel plan
+      const updatedPlan = [
+        { destinationId: 1, destinationName: 'Munnar Tea Valleys', nights: 3 },
+        { destinationId: 3, destinationName: 'Amer Fort Palaces', nights: 2 }
+      ];
+      const saveRes = await makeRequest('/api/auth/itinerary/user-tarun', 'POST', { itinerary: updatedPlan });
+      assert.strictEqual(saveRes.statusCode, 200);
+      assert.strictEqual(saveRes.body.count, 2);
+
+      // 3. Verify Aysha's itinerary remains completely isolated and unchanged
+      const ayshaRes = await makeRequest('/api/auth/itinerary/user-aysha');
+      assert.strictEqual(ayshaRes.statusCode, 200);
+      assert.strictEqual(ayshaRes.body.count, 2);
+      assert.strictEqual(ayshaRes.body.itinerary[0].destinationName, 'Munnar Tea Valleys & Cloud Beds');
+    });
   } finally {
     server.close();
   }
