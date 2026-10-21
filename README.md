@@ -277,7 +277,7 @@ You can run services individually or concurrently using root workspace scripts:
 ```bash
 npm run dev
 ```
-* **Frontend Client**: [http://localhost:3000](http://localhost:3000)
+* **Frontend Client**: [http://localhost:6345](http://localhost:6345)
 * **Backend API Server**: [http://localhost:5000](http://localhost:5000)
 
 #### 2. Start Frontend Client Only:

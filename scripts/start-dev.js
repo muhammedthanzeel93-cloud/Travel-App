@@ -19,13 +19,13 @@ const serverProcess = spawn(npmCmd, ['start', '--workspace=server'], {
   env: process.env
 });
 
-// 2. Launch Client Frontend UI (Port 3000)
-console.log('💻 Starting Frontend Client UI on http://localhost:3000 ...');
+// 2. Launch Client Frontend UI (Port 6345)
+console.log('💻 Starting Frontend Client UI on http://localhost:6345 ...');
 const clientProcess = spawn(npmCmd, ['start', '--workspace=client'], {
   cwd: path.resolve(__dirname, '..'),
   shell: true,
   stdio: 'inherit',
-  env: process.env
+  env: { ...process.env, PORT: '6345' }
 });
 
 const cleanup = () => {
